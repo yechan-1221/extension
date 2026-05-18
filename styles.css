@@ -1,0 +1,23 @@
+body {
+    width: 700px;
+    padding: 10px;
+    font-family: Arial;
+}
+
+video {
+    width: 640px;
+    height: 480px;
+    border: 1px solid black;
+}
+
+canvas {
+    position: absolute;
+    top: 60px;
+    left: 10px;
+}
+
+#status {
+    margin-top: 10px;
+    font-size: 18px;
+    font-weight: bold;
+}

@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "UprightAI",
+  "version": "1.0",
+  "description": "Realtime posture monitoring",
+
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
+
+  "web_accessible_resources": [
+    {
+      "resources": ["ui/alert.html", "ui/alert.js"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+
+  "permissions": [
+    "storage",
+    "activeTab",
+    "windows",
+    "notifications"
+  ],
+
+  "host_permissions": [
+    "http://localhost:8000/*",
+    "<all_urls>"
+  ],
+
+  "action": {
+    "default_title": "UprightAI"
+  },
+
+  "background": {
+    "service_worker": "background.js"
+  }
+}
