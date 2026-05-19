@@ -7,8 +7,8 @@ const timerEl = document.getElementById('timer-display');
 const closeBtn = document.getElementById('close-btn');
 
 const config = {
-    start: { title: "🔋 모니터링 시작", message: "NFC 인증 완료. 올바른 자세를 유지하세요!", color: "#2ecc71" },
-    end: { title: "🛑 모니터링 종료", message: "오늘 하루도 고생하셨습니다. 로그를 저장합니다.", color: "#3498db" },
+    start: { title: "🔋 근무 시작", message: "오늘도 좋은 하루 되세요! 올바른 자세를 유지하세요!", color: "#2ecc71" },
+    end: { title: "🛑 근무 종료", message: "오늘 하루도 고생하셨습니다. 로그를 저장합니다.", color: "#3498db" },
     error: { title: "⚠️ 연결 오류", message: "로컬 서버와의 연결이 끊어졌습니다.", color: "#e74c3c" }
 };
 
