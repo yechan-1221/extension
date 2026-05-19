@@ -21,8 +21,6 @@ chrome.action.onClicked.addListener(async () => {
         top: 80,
         left: 900
     });
-
-    windowId = win.id;
 });
 
 chrome.runtime.onConnect.addListener((port) => {
