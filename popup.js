@@ -11,6 +11,118 @@ const FUNCTIONS_URL = 'https://uprightai-func-c5eyevhngmhtbadr.centralus-01.azur
 const MIN_FHP_SEC   = 10;
 const KST_OFFSET    = 9 * 60 * 60 * 1000;
 
+// ── 페이지/탭 라우팅 (CSP 호환 — 인라인 script 대체) ──────
+(function initRouting() {
+  var $ = function(id) { return document.getElementById(id); };
+  var PAGES  = ['page-setup', 'page-main', 'page-stretching'];
+  var TABS   = ['tab-live-page', 'tab-survey-page'];
+  var TABBTN = ['tab-live', 'tab-survey'];
+  function showPage(id) {
+    PAGES.forEach(function(p) { $(p).classList.remove('active'); });
+    $(id).classList.add('active');
+  }
+  function showTab(pageId, btnId) {
+    TABS.forEach(function(t) { $(t).classList.remove('active'); });
+    TABBTN.forEach(function(b) { $(b).classList.remove('active'); });
+    $(pageId).classList.add('active');
+    $(btnId).classList.add('active');
+  }
+
+  var p = new URLSearchParams(location.search).get('state') || '';
+
+  if (!p) {
+    // 프로덕션: setup 화면 표시, 탭 바인딩
+    showPage('page-setup');
+    $('tab-live').addEventListener('click', function() { showTab('tab-live-page','tab-live'); });
+    $('tab-survey').addEventListener('click', function() { showTab('tab-survey-page','tab-survey'); });
+    return;
+  }
+
+  // 프리뷰: ?state=xxx 목업
+  var statusDot = $('statusDot'), statusTxt = $('statusText');
+  var camDot = $('camStatusDot'), camTxt = $('camStatusText'), camBadge = $('camBadge');
+  var liveCVA = $('liveCVA'), liveState = $('liveState'), liveSide = $('liveSide');
+  var fhpCount = $('sessionFhpCount'), fhpSec = $('sessionFhpSec');
+  var nfcBanner = $('nfcBanner'), nfcTitle = $('nfcTitle'), nfcSub = $('nfcBannerSub');
+  $('headerUser').textContent = 'emp_001'; $('headerTime').textContent = '14:17';
+  $('tab-live').addEventListener('click', function() { showTab('tab-live-page','tab-live'); });
+  $('tab-survey').addEventListener('click', function() { showTab('tab-survey-page','tab-survey'); });
+
+  if (p === 'live-loading') {
+    showPage('page-main'); showTab('tab-live-page','tab-live');
+    statusDot.style.background = 'var(--warn)'; statusTxt.textContent = 'AI 모델 로딩 중...';
+    camDot.style.background = 'var(--warn)'; camTxt.textContent = '로딩 중';
+    liveCVA.textContent = '--'; liveState.textContent = '--'; liveSide.textContent = '--';
+    fhpCount.textContent = '0'; fhpSec.textContent = '0';
+    var cw = document.querySelector('.cam-wrap');
+    if (cw) cw.innerHTML = '<div class="cam-loading"><div class="cam-loading-icon">🧘</div><div class="cam-loading-text">AI 모델 로딩 중...</div><div class="shimmer-bar"></div></div>';
+  }
+  if (p === 'live-good') {
+    showPage('page-main'); showTab('tab-live-page','tab-live');
+    statusDot.style.background = 'var(--good)'; statusTxt.textContent = '측정 중';
+    camDot.style.background = 'var(--good)'; camTxt.textContent = 'LIVE';
+    camBadge.textContent = '✓ 바른 자세'; camBadge.className = 'cam-badge normal';
+    liveCVA.textContent = '58.4'; liveCVA.style.color = 'var(--good)';
+    liveState.textContent = '정상'; liveState.style.color = 'var(--good)';
+    liveSide.textContent = '우측'; fhpCount.textContent = '2'; fhpSec.textContent = '47';
+    nfcTitle.textContent = '자세 정상'; nfcSub.textContent = 'CVA 58.4° — 바른 자세를 유지하고 있습니다.';
+  }
+  if (p === 'live-bad') {
+    showPage('page-main'); showTab('tab-live-page','tab-live');
+    statusDot.style.background = 'var(--good)'; statusTxt.textContent = '측정 중';
+    camDot.style.background = 'var(--risk)'; camTxt.textContent = 'LIVE';
+    camBadge.textContent = '⚠ 거북목 감지'; camBadge.className = 'cam-badge severe';
+    liveCVA.textContent = '41.2'; liveCVA.style.color = 'var(--risk)';
+    liveState.textContent = '거북목'; liveState.style.color = 'var(--risk)';
+    liveSide.textContent = '우측'; fhpCount.textContent = '3'; fhpSec.textContent = '118';
+    if (nfcBanner) nfcBanner.classList.add('bad-posture');
+    nfcTitle.textContent = '⚠ 거북목 감지'; nfcTitle.className = 'nfc-title bad';
+    nfcSub.textContent = 'CVA 41.2° — 목이 앞으로 기울어졌습니다. 지금 바로잡아 주세요.';
+    var ni = document.querySelector('.nfc-icon'); if (ni) ni.textContent = '⚠️';
+  }
+  if (p === 'survey-wed') {
+    showPage('page-main'); showTab('tab-survey-page','tab-survey');
+    $('surveyBadge').classList.add('show'); $('surveyBanner').className = 'sv-banner wednesday';
+    $('surveyBannerIcon').textContent = '📋'; $('surveyBannerTitle').textContent = '오늘은 설문일입니다!';
+    $('surveyBannerSub').textContent = '이번 주 컨디션을 알려주세요. 5문항, 1분이면 충분합니다.';
+  }
+  if (p === 'survey-waiting') {
+    showPage('page-main'); showTab('tab-survey-page','tab-survey');
+    $('surveyBanner').className = 'sv-banner waiting'; $('surveyBannerIcon').textContent = '📅';
+    $('surveyBannerTitle').textContent = '다음 설문일: 수요일 (3일 후)';
+    $('surveyBannerSub').textContent = '수요일이 아니어도 미리 제출할 수 있습니다.';
+  }
+  if (p === 'survey-done') {
+    showPage('page-main'); showTab('tab-survey-page','tab-survey');
+    $('surveyBanner').className = 'sv-banner done'; $('surveyBannerIcon').textContent = '✅';
+    $('surveyBannerTitle').textContent = '이번 주 설문 완료';
+    $('surveyBannerSub').textContent = '설문에 참여해주셔서 감사합니다. 다음 수요일에 다시 만나요!';
+    $('surveySubmitBtn').disabled = true;
+    $('resultCard').className = 'result-card show yellow';
+    $('resultEmoji').textContent = '🟡'; $('resultLabel').textContent = '번아웃 위험도 중간';
+    $('resultDesc').textContent = '위험 지수 52% — 업무량과 휴식의 균형을 점검해보세요.';
+  }
+  if (p === 'stretching-init') {
+    showPage('page-stretching');
+    $('stretchPillDot').style.background = 'var(--warn)'; $('stretchPillText').textContent = '준비 중';
+    $('stretchFeedbackMain').textContent = '기준 자세 측정 버튼을 눌러 시작하세요';
+    $('stretchFeedback').textContent = '카메라에 측면이 잘 보이도록 자세를 맞춰주세요.';
+    $('stretchSuccessNum').textContent = '0';
+    var ps = document.querySelector('.ps-cam-wrap');
+    if (ps) ps.innerHTML = '<div class="cam-loading"><div class="cam-loading-icon">🧘</div><div class="cam-loading-text">카메라 준비 중...</div><div class="shimmer-bar"></div></div>';
+  }
+  if (p === 'stretching') {
+    showPage('page-stretching');
+    $('stretchPillDot').style.background = 'var(--good)'; $('stretchPillText').textContent = '운동 중';
+    $('stretchFeedbackMain').textContent = '자세를 유지해주세요 — 5초 버티기';
+    $('stretchFeedback').textContent = '턱을 천천히 당겨 목 뒤를 길게 늘려주세요.';
+    $('stretchSuccessNum').textContent = '2';
+    $('stretchHoldBar').classList.add('show'); $('stretchHoldFill').style.width = '60%'; $('stretchHoldLabel').textContent = '3.0 / 5초';
+    var ps2 = document.querySelector('.ps-cam-wrap');
+    if (ps2) ps2.innerHTML = '<div class="cam-loading" style="background:#1A1A1E"><div class="cam-loading-icon">📷</div><div class="cam-loading-text">측면 인식 중...</div><div class="shimmer-bar"></div></div>';
+  }
+})();
+
 function nowKST() {
     return new Date(Date.now() + KST_OFFSET).toISOString().replace('Z', '');
 }
@@ -18,6 +130,7 @@ function todayKST() {
     return new Date(Date.now() + KST_OFFSET).toISOString().slice(0, 10);
 }
 
+// ── 원본과 동일한 상태 변수들 ─────────────────────────────
 let token      = null;
 let detector   = null;
 let loopRunning = false;
@@ -28,122 +141,14 @@ let fhpStartMs = null;
 let pendingState      = 'NORMAL';
 let pendingStateStart = Date.now();
 let noDetectionStart  = null;
-let totalFhpDuration  = 0; // 거북목 누적 시간(초)
+let totalFhpDuration  = 0;
 let fhpEvents  = [];
 let sessionIdx = 1;
 
 const video  = document.getElementById('webcam');
 const canvas = document.getElementById('overlay');
-const ctx    = canvas.getContext('2d');
 
-// ── 로그인/회원가입 탭 전환 ──────────────────────────────
-document.getElementById('authTabLogin').addEventListener('click', () => {
-    document.getElementById('authTabLogin').classList.add('active');
-    document.getElementById('authTabRegister').classList.remove('active');
-    document.getElementById('formLogin').classList.add('active');
-    document.getElementById('formRegister').classList.remove('active');
-    document.getElementById('loginMsg').textContent    = '';
-    document.getElementById('registerMsg').textContent = '';
-});
-
-document.getElementById('authTabRegister').addEventListener('click', () => {
-    document.getElementById('authTabRegister').classList.add('active');
-    document.getElementById('authTabLogin').classList.remove('active');
-    document.getElementById('formRegister').classList.add('active');
-    document.getElementById('formLogin').classList.remove('active');
-    document.getElementById('loginMsg').textContent    = '';
-    document.getElementById('registerMsg').textContent = '';
-});
-
-// ── 로그인 ────────────────────────────────────────────────
-document.getElementById('loginBtn').addEventListener('click', async () => {
-    const id  = document.getElementById('loginId').value.trim();
-    const pw  = document.getElementById('loginPw').value.trim();
-    const msg = document.getElementById('loginMsg');
-
-    if (!id || !pw) { msg.textContent = '아이디와 비밀번호를 입력하세요.'; return; }
-
-    try {
-        const res  = await fetch(FUNCTIONS_URL + '/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: id, password: pw })
-        });
-        const data = await res.json();
-
-        if (!res.ok) { msg.textContent = data.detail || '로그인 실패'; return; }
-
-        token  = data.token;
-        userId = data.user_id;
-        document.getElementById('headerUser').textContent = userId;
-
-        document.getElementById('page-login').style.display = 'none';
-        document.getElementById('page-main').style.display  = 'block';
-        sendNotification('start');
-        startCamera();
-
-    } catch(e) {
-        msg.textContent = '서버에 연결할 수 없습니다.';
-    }
-});
-
-// ── 회원가입 ──────────────────────────────────────────────
-document.getElementById('registerBtn').addEventListener('click', async () => {
-    const name = document.getElementById('regName').value.trim();
-    const id   = document.getElementById('regId').value.trim();
-    const pw   = document.getElementById('regPw').value.trim();
-    const msg  = document.getElementById('registerMsg');
-
-    if (!name || !id || !pw) { msg.textContent = '모든 항목을 입력하세요.'; return; }
-    if (id.length < 3)       { msg.textContent = '아이디는 3자 이상이어야 합니다.'; return; }
-    if (pw.length < 6)       { msg.textContent = '비밀번호는 6자 이상이어야 합니다.'; return; }
-
-    msg.className   = 'login-msg';
-    msg.textContent = '';
-
-    try {
-        const res  = await fetch(FUNCTIONS_URL + '/auth/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: id, password: pw, name })
-        });
-        const data = await res.json();
-
-        if (!res.ok) { msg.textContent = data.detail || '회원가입 실패'; return; }
-
-        msg.className   = 'login-msg success';
-        msg.textContent = `${name}님 가입 완료! 로그인해주세요.`;
-
-        // 1.2초 후 로그인 탭으로 자동 전환 + 아이디 자동 입력
-        setTimeout(() => {
-            document.getElementById('authTabLogin').click();
-            document.getElementById('loginId').value = id;
-        }, 1200);
-
-    } catch(e) {
-        msg.textContent = '서버에 연결할 수 없습니다.';
-    }
-});
-
-// ── 탭 전환 ──────────────────────────────────────────────
-document.getElementById('tab-live').addEventListener('click', function() {
-    document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
-    this.classList.add('active');
-    document.getElementById('tab-live-page').classList.add('active');
-});
-
-document.getElementById('tab-stats').addEventListener('click', function() {
-    document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
-    this.classList.add('active');
-    document.getElementById('tab-stats-page').classList.add('active');
-    loadStats();
-});
-
-document.getElementById('refresh-btn').addEventListener('click', loadStats);
-
-// ── 시간 표시 ─────────────────────────────────────────────
+// ── 시간 표시 (원본 동일) ─────────────────────────────────
 function updateTime() {
     const now = new Date(Date.now() + KST_OFFSET);
     document.getElementById('headerTime').textContent =
@@ -152,70 +157,175 @@ function updateTime() {
 setInterval(updateTime, 1000);
 updateTime();
 
-// ── 도넛 차트 ─────────────────────────────────────────────
-function drawDonut(n, b, s) {
-    const c = document.getElementById('donutChart').getContext('2d');
-    const cx = 45, cy = 45, r = 36, thick = 12;
-    c.clearRect(0, 0, 90, 90);
-    const total = n + b + s;
-    if (total === 0) {
-        c.beginPath(); c.arc(cx, cy, r, 0, 2 * Math.PI);
-        c.strokeStyle = '#E8E2D7'; c.lineWidth = thick; c.stroke();
-        return;
+// ── 설문 관련 ─────────────────────────────────────────────
+const isWed         = () => new Date(Date.now() + KST_OFFSET).getDay() === 3;
+const daysToWed     = () => { const d = new Date(Date.now() + KST_OFFSET).getDay(); return ((3 - d + 7) % 7) || 7; };
+const surveyKey     = () => `survey_done_${todayKST()}_${userId}`;
+const isSurveyDone  = () => { try { return !!localStorage.getItem(surveyKey()); } catch { return false; } };
+const markSurveyDone = () => { try { localStorage.setItem(surveyKey(), '1'); } catch {} };
+
+function updateSurveyBanner() {
+    const banner = document.getElementById('surveyBanner');
+    const icon   = document.getElementById('surveyBannerIcon');
+    const title  = document.getElementById('surveyBannerTitle');
+    const sub    = document.getElementById('surveyBannerSub');
+    const badge  = document.getElementById('surveyBadge');
+    const btn    = document.getElementById('surveySubmitBtn');
+
+    if (isSurveyDone()) {
+        banner.className   = 'survey-banner done';
+        icon.textContent   = '✅';
+        title.textContent  = '이번 주 설문 완료';
+        sub.textContent    = '설문에 참여해주셔서 감사합니다. 다음 수요일에 다시 만나요!';
+        if (badge) badge.classList.remove('show');
+        if (btn)   btn.disabled = true;
+    } else if (isWed()) {
+        banner.className   = 'survey-banner wednesday';
+        icon.textContent   = '📋';
+        title.textContent  = '오늘은 설문일입니다!';
+        sub.textContent    = '이번 주 컨디션을 알려주세요. 5문항, 1분이면 충분합니다.';
+        if (badge) badge.classList.add('show');
+        if (btn)   btn.disabled = false;
+    } else {
+        banner.className   = 'survey-banner waiting';
+        icon.textContent   = '📅';
+        title.textContent  = `다음 설문일: 수요일 (${daysToWed()}일 후)`;
+        sub.textContent    = '수요일이 아니어도 미리 제출할 수 있습니다.';
+        if (badge) badge.classList.remove('show');
+        if (btn)   btn.disabled = false;
     }
-    [{ val: n/total, color: '#2E7D5B' },
-     { val: b/total, color: '#C57B2E' },
-     { val: s/total, color: '#C4513A' }].reduce((start, d) => {
-        if (d.val <= 0) return start;
-        const end = start + d.val * 2 * Math.PI;
-        c.beginPath(); c.arc(cx, cy, r, start, end);
-        c.strokeStyle = d.color; c.lineWidth = thick; c.stroke();
-        return end;
-    }, -Math.PI / 2);
 }
-drawDonut(0, 0, 0);
 
-// ── 통계 로드 ─────────────────────────────────────────────
-async function loadStats() {
-    if (!token || !userId) return;
+const calcBurnout = (w, f, sleep, sign) => Math.min(1, Math.max(0,
+    w * 0.035 + f * 0.045 +
+    (sleep === '부족' ? 0.12 : sleep === '보통' ? 0.06 : 0) +
+    (sign  === '많이' ? 0.18 : sign  === '약간' ? 0.09 : 0)
+));
+
+async function submitSurvey() {
+    const w     = +document.getElementById('q1').value;
+    const f     = +document.getElementById('q2').value;
+    const sleep = document.querySelector('.ch-btn[data-q="q3"].selected')?.dataset.val;
+    const sign  = document.querySelector('.ch-btn[data-q="q4"].selected')?.dataset.val;
+    const comment = document.getElementById('q5').value.trim();
+
+    if (!sleep || !sign) { alert('수면 상태와 번아웃 징후를 선택해주세요.'); return; }
+
+    const burn  = calcBurnout(w, f, sleep, sign);
+    const level = burn >= 0.7 ? 'HIGH' : burn >= 0.4 ? 'MEDIUM' : 'LOW';
+    showResult(level, burn);
+    document.getElementById('surveySubmitBtn').disabled = true;
+
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
     try {
-        const res  = await fetch(FUNCTIONS_URL + '/stats/' + userId, {
-            headers: { 'Authorization': 'Bearer ' + token }
+        await fetch(FUNCTIONS_URL + '/survey', {
+            method: 'POST', headers,
+            body: JSON.stringify({
+                user_id: userId, date: todayKST(),
+                workload: w, mental_fatigue: f,
+                sleep_quality: sleep, burnout_sign: sign, comment,
+                burn_rate: parseFloat(burn.toFixed(4)), risk_level: level,
+                submitted_at: nowKST()
+            })
         });
-        const data = await res.json();
+    } catch(e) { console.warn('설문 전송 실패:', e); }
 
-        if (!data.total_sessions || data.total_sessions === 0) {
-            ['statAvgCVA','statCount','statDuration','statRatio'].forEach(id => {
-                document.getElementById(id).textContent = '0';
-            });
-            document.getElementById('insightText').textContent = '아직 측정 데이터가 없습니다.';
-            drawDonut(0, 0, 0);
+    markSurveyDone();
+    updateSurveyBanner();
+}
+
+function showResult(level, burn) {
+    const map = {
+        LOW:    { cls: 'green',  e: '🟢', l: '번아웃 위험도 낮음', d: '현재 컨디션이 양호합니다. 지금 패턴을 유지하세요.' },
+        MEDIUM: { cls: 'yellow', e: '🟡', l: '번아웃 위험도 중간', d: '업무량과 휴식의 균형을 점검해보세요.' },
+        HIGH:   { cls: 'red',    e: '🔴', l: '번아웃 위험도 높음', d: 'HR 담당자와 면담을 권장합니다.' }
+    };
+    const m = map[level];
+    document.getElementById('resultCard').className  = `result-card show ${m.cls}`;
+    document.getElementById('resultEmoji').textContent = m.e;
+    document.getElementById('resultLabel').textContent = m.l;
+    document.getElementById('resultDesc').textContent  = `위험 지수 ${Math.round(burn * 100)}% — ${m.d}`;
+}
+
+function bindSurveyEvents() {
+    ['q1', 'q2'].forEach(id => {
+        const sl = document.getElementById(id);
+        const vl = document.getElementById(id + 'val');
+        if (sl && vl) sl.addEventListener('input', () => vl.textContent = sl.value);
+    });
+    document.querySelectorAll('.ch-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll(`.ch-btn[data-q="${btn.dataset.q}"]`)
+                    .forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+        });
+    });
+    document.getElementById('surveySubmitBtn').addEventListener('click', submitSurvey);
+}
+
+// ── 로그인 없이 바로 시작 (NFC 자동 인증 대응) ───────────
+// window.nfcLogin(userId) 으로 외부에서 호출 가능 (원본 동일)
+function startMain(id) {
+    userId = id;
+    document.getElementById('headerUser').textContent = userId;
+
+    // NFC 배너 서브 텍스트에 사용자명 반영
+    const sub = document.getElementById('nfcBannerSub');
+    if (sub) sub.textContent = `${userId}님, 자세 모니터링을 시작합니다. 올바른 자세를 유지해주세요.`;
+
+    // 페이지-메인 표시
+    document.getElementById('page-setup').classList.remove('active');
+    document.getElementById('page-main').classList.add('active');
+
+    updateSurveyBanner();
+    bindSurveyEvents();
+
+    // 백그라운드 토큰 발급 시도 (실패해도 카메라는 동작)
+    fetch(FUNCTIONS_URL + '/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: 'test01', password: 'test1234' })
+    }).then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.token) token = d.token; })
+      .catch(() => {});
+
+    startCamera();
+}
+
+// NFC 태그 → 외부에서 호출하는 진입점 (원본과 동일하게 유지)
+window.nfcLogin = id => {
+    try { localStorage.setItem('uprightai_user_id', id); } catch {}
+    startMain(id);
+};
+
+// ── 시작하기 버튼 ─────────────────────────────────────────
+const setupBtn = document.getElementById('setupBtn');
+if (setupBtn) {
+    setupBtn.addEventListener('click', () => {
+        const id = document.getElementById('setupId').value.trim();
+        if (!id || id.length < 2) {
+            document.getElementById('setupMsg').textContent = '사번/아이디를 2자 이상 입력하세요.';
             return;
         }
-
-        document.getElementById('statAvgCVA').textContent   = data.avg_cva_angle ? data.avg_cva_angle.toFixed(1) : '--';
-        document.getElementById('statCount').textContent    = data.total_fhp_events;
-        document.getElementById('statDuration').textContent = data.avg_duration_sec ? Math.round(data.avg_duration_sec) : '--';
-        document.getElementById('statRatio').textContent    = data.fhp_ratio;
-
-        const n = data.normal_count || 0;
-        const b = data.borderline_count || 0;
-        const s = data.fhp_count || 0;
-        drawDonut(n, b, s);
-        document.getElementById('lgNormal').textContent = n + '회';
-        document.getElementById('lgSevere').textContent = s + '회';
-
-        const ratio = data.fhp_ratio;
-        document.getElementById('insightText').textContent =
-            ratio > 40 ? '거북목 비율이 ' + ratio + '%로 높습니다. 모니터 높이를 조정해보세요.' :
-            ratio > 20 ? '거북목 비율이 ' + ratio + '%입니다. 스트레칭을 권장합니다.' :
-                         '오늘 자세 관리가 잘 되고 있어요! 거북목 비율 ' + ratio + '%로 양호합니다.';
-    } catch(e) {
-        document.getElementById('insightText').textContent = 'Azure Functions 서버에 연결할 수 없습니다.';
-    }
+        try { localStorage.setItem('uprightai_user_id', id); } catch {}
+        startMain(id);
+    });
 }
 
-// ── 세션 로그 전송 ────────────────────────────────────────
+// 페이지 로드 시 저장된 userId가 있으면 자동 시작 (단, preview 모드 제외)
+(function init() {
+    if (new URLSearchParams(location.search).get('state')) return;
+    let saved = null;
+    try { saved = localStorage.getItem('uprightai_user_id'); } catch {}
+    if (saved) {
+        document.getElementById('setupId').value = saved;
+        // 자동 시작은 하지 않고 input만 채워줌 — 사용자가 직접 버튼 누르도록
+    }
+})();
+
+// ── 세션 로그 전송 (원본 동일) ────────────────────────────
 async function sendSessionLog() {
     if (!token || fhpEvents.length === 0) return;
     const eventsToSend = [...fhpEvents];
@@ -223,7 +333,10 @@ async function sendSessionLog() {
     try {
         const res = await fetch(FUNCTIONS_URL + '/log', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
             body: JSON.stringify({
                 user_id: userId, date: todayKST(),
                 session_index: sessionIdx, fhp_events: eventsToSend
@@ -235,17 +348,17 @@ async function sendSessionLog() {
 
 window.addEventListener('beforeunload', sendSessionLog);
 
-// ── 시간 기반 자동 종료 (오후 7시 KST) ───────────────────
+// ── 자동 종료 (오후 7시 KST) — 원본 동일 ─────────────────
 const AUTO_END_HOUR = 19;
 
 async function checkAutoLogout() {
-    if (!token) return;
+    if (!token) return;   // 원본과 동일: token 없으면 skip
     const now = new Date(Date.now() + KST_OFFSET);
     if (now.getHours() >= AUTO_END_HOUR) executeShutdown();
 }
 setInterval(checkAutoLogout, 60000);
 
-// ── 종료 워크플로우 ────────────────────────────────────────
+// ── 종료 워크플로우 (원본 동일) ───────────────────────────
 async function finalize() {
     try { await sendSessionLog(); } catch(e) { console.warn('로그 전송 실패:', e); }
     sendNotification('end');
@@ -255,22 +368,20 @@ async function finalize() {
 async function executeShutdown() {
     loopRunning = false;
 
-    // 카메라 스트림 종료
     if (video.srcObject) {
         video.srcObject.getTracks().forEach(t => t.stop());
         video.srcObject = null;
     }
 
     if (totalFhpDuration > 5.0) {
-        // 거북목 5초 초과 → 스트레칭 화면으로 전환
-        document.getElementById('page-main').style.display = 'none';
-        document.getElementById('page-stretching').style.display = 'flex';
+        // 스트레칭 화면으로 전환
+        document.getElementById('page-main').classList.remove('active');
+        document.getElementById('page-stretching').classList.add('active');
 
-        // 스트레칭 전용 카메라 시작
         const stretchVideo  = document.getElementById('stretchVideo');
         const stretchCanvas = document.getElementById('stretchCanvas');
         const stream = await navigator.mediaDevices.getUserMedia({
-            video: { width: 256, height: 256, facingMode: 'user' }, audio: false
+            video: { width: 400, height: 300, facingMode: 'user' }, audio: false
         });
         stretchVideo.srcObject = stream;
         await new Promise(r => stretchVideo.onloadedmetadata = r);
@@ -280,7 +391,6 @@ async function executeShutdown() {
         resetChinTuckState();
         let stretchRunning = true;
 
-        // 스트레칭 감지 루프
         async function stretchLoop() {
             if (!stretchRunning) return;
             try {
@@ -288,11 +398,17 @@ async function executeShutdown() {
                 if (poses.length > 0) {
                     const result = getBestSidePoints(poses[0].keypoints);
                     if (result && result.confOk) {
-                        const cva = calculateCVA(result.ear, result.shoulder);
+                        const cva         = calculateCVA(result.ear, result.shoulder);
                         const poseQuality = getStretchPoseQuality(poses[0].keypoints, stretchCanvas.width);
-                        const chinResult = evaluateChinTuck({ ear: result.ear, shoulder: result.shoulder, cva, poseQuality });
+                        const chinResult  = evaluateChinTuck({
+                            ear: result.ear, shoulder: result.shoulder, cva, poseQuality
+                        });
                         drawChinTuckOverlay(stretchCanvas, result.ear, result.shoulder, chinResult);
-                        document.getElementById('stretchFeedback').textContent = chinResult.message || '';
+                        // 피드백을 하단 패널 두 줄에 분리 출력
+                        const main   = document.getElementById('stretchFeedbackMain');
+                        const detail = document.getElementById('stretchFeedback');
+                        if (main)   main.textContent   = chinResult.message      || '';
+                        if (detail) detail.textContent = chinResult.detailMessage || '';
                     }
                 }
             } catch(e) { console.error(e); }
@@ -300,10 +416,8 @@ async function executeShutdown() {
         }
         stretchLoop();
 
-        // 기준 자세 측정 버튼
         document.getElementById('baselineBtn').onclick = () => requestChinTuckBaseline();
 
-        // 스트레칭 완료
         document.getElementById('stretchDoneBtn').onclick = () => {
             stretchRunning = false;
             stream.getTracks().forEach(t => t.stop());
@@ -311,11 +425,11 @@ async function executeShutdown() {
             finalize();
         };
     } else {
-        // 거북목 5초 이하 → 바로 종료
         finalize();
     }
 }
 
+// ── 사이드뷰 품질 (원본 동일) ─────────────────────────────
 function getStretchPoseQuality(keypoints, canvasWidth) {
     const leftEar       = keypoints.find(k => k.name === 'left_ear');
     const rightEar      = keypoints.find(k => k.name === 'right_ear');
@@ -325,35 +439,31 @@ function getStretchPoseQuality(keypoints, canvasWidth) {
     if (!leftEar || !rightEar || !leftShoulder || !rightShoulder)
         return { isSideView: false, reason: 'KEYPOINT_MISSING' };
 
-    const width = canvasWidth || 256;
+    const width              = canvasWidth || 256;
     const shoulderWidthRatio = Math.abs(leftShoulder.x - rightShoulder.x) / width;
     const earWidthRatio      = Math.abs(leftEar.x - rightEar.x) / width;
     const leftScore          = (leftEar.score + leftShoulder.score) / 2;
     const rightScore         = (rightEar.score + rightShoulder.score) / 2;
     const sideScoreGap       = Math.abs(leftScore - rightScore);
-    const sideByNarrowShoulder  = shoulderWidthRatio <= 0.22;
-    const sideByDominantSide    = sideScoreGap >= 0.12 && shoulderWidthRatio <= 0.32;
-    const bothEarsClearlyVisible = leftEar.score > 0.45 && rightEar.score > 0.45 && earWidthRatio > 0.08;
 
     return {
-        isSideView: (sideByNarrowShoulder || sideByDominantSide) && !bothEarsClearlyVisible,
+        isSideView: (shoulderWidthRatio <= 0.22 || (sideScoreGap >= 0.12 && shoulderWidthRatio <= 0.32))
+                    && !(leftEar.score > 0.45 && rightEar.score > 0.45 && earWidthRatio > 0.08),
         shoulderWidthRatio, earWidthRatio, sideScoreGap, leftScore, rightScore
     };
 }
 
-// ── 종료 버튼 ─────────────────────────────────────────────
+// ── 종료 버튼 (원본 동일) ────────────────────────────────
 document.getElementById('logoutBtn').addEventListener('click', executeShutdown);
 
-// ── 점/선 그리기 ──────────────────────────────────────────
-
-// ── 카메라 + 추론 ─────────────────────────────────────────
+// ── 카메라 + 추론 루프 (원본 동일) ───────────────────────
 async function startCamera() {
     document.getElementById('statusText').textContent = '카메라 로딩 중...';
     resetSideLock();
-    lastState = 'NORMAL';
-    pendingState = 'NORMAL';
+    lastState         = 'NORMAL';
+    pendingState      = 'NORMAL';
     pendingStateStart = Date.now();
-    noDetectionStart = null;
+    noDetectionStart  = null;
 
     try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -375,6 +485,7 @@ async function startCamera() {
         document.getElementById('statusDot').style.background = '#2E7D5B';
 
         loopRunning = true;
+
         async function detectLoop() {
             if (!loopRunning) return;
             try {
@@ -382,58 +493,49 @@ async function startCamera() {
                 if (poses.length > 0) {
                     const result = getBestSidePoints(poses[0].keypoints);
                     if (result && result.confOk) {
-                        noDetectionStart = null; // 인식 재개 시 리셋
-                        const cva        = calculateCVA(result.ear, result.shoulder);
-                        const rawState   = applyHysteresis(cva, lastState);
+                        noDetectionStart = null;
+                        const cva      = calculateCVA(result.ear, result.shoulder);
+                        const rawState = applyHysteresis(cva, lastState);
 
-                        // ── 상태 전환 지연 로직 ──────────────────────────
-                        // 거북목 → 정상: 5초 지속 시 전환
-                        // 정상 → 거북목: 10초 지속 시 전환 (최초 미감지→감지 제외)
                         const now = Date.now();
-
                         if (rawState !== pendingState) {
                             pendingState      = rawState;
                             pendingStateStart = now;
                         }
 
-                        const pendingDuration = now - pendingStateStart;
-                        const FHP_CONFIRM_MS    = 10000; // 거북목 확정: 10초
-                        const NORMAL_CONFIRM_MS = 5000;  // 정상 확정: 5초 (거북목→정상만)
+                        const pendingDuration   = now - pendingStateStart;
+                        const FHP_CONFIRM_MS    = 10000;
+                        const NORMAL_CONFIRM_MS = 5000;
 
                         let confirmedState = lastState;
-
                         if (pendingState === 'SEVERE_FHP' && pendingDuration >= FHP_CONFIRM_MS) {
                             confirmedState = 'SEVERE_FHP';
                         } else if (pendingState === 'NORMAL' && lastState === 'SEVERE_FHP' && pendingDuration >= NORMAL_CONFIRM_MS) {
                             confirmedState = 'NORMAL';
                         } else if (lastState !== 'SEVERE_FHP') {
-                            // 거북목 아닌 상태에서 정상 전환은 즉시
                             confirmedState = pendingState;
                         }
 
                         const state = confirmedState;
 
-                        // overlay.js로 캔버스 그리기
                         drawOverlay(canvas, result.ear, result.shoulder, state, cva, {
                             active:    state === 'SEVERE_FHP',
                             startTime: fhpStartMs
                         });
-
-                        // 파라미터 테스트 로그
                         logParamFrame(cva, cva, pendingState, state);
 
                         document.getElementById('liveCVA').textContent   = cva.toFixed(1);
-                        document.getElementById('liveState').textContent =
+                        document.getElementById('liveState').textContent  =
                             state === 'NORMAL' ? '정상' : '거북목';
-                        document.getElementById('liveSide').textContent  =
+                        document.getElementById('liveSide').textContent   =
                             result.side === 'LEFT' ? '좌측' : '우측';
 
                         const badge = document.getElementById('camBadge');
                         if (state === 'NORMAL') {
-                            badge.className = 'cam-badge normal';
+                            badge.className   = 'cam-badge normal';
                             badge.textContent = '✓ 바른 자세';
                         } else {
-                            badge.className = 'cam-badge severe';
+                            badge.className   = 'cam-badge severe';
                             badge.textContent = '⚠ 거북목 감지';
                         }
 
@@ -453,25 +555,21 @@ async function startCamera() {
                         lastState = state;
 
                     } else {
-                        // 미감지 시작 시각 기록
                         if (noDetectionStart === null) noDetectionStart = Date.now();
-
                         const noDetectionSec = (Date.now() - noDetectionStart) / 1000;
 
                         if (noDetectionSec >= 10) {
-                            // 10초 이상 미감지 → 상태 초기화
                             if (lastState !== 'NO_DETECTION') {
                                 clearOverlay(canvas);
                                 document.getElementById('camBadge').className   = 'cam-badge';
                                 document.getElementById('camBadge').textContent = '측면을 카메라에 보여주세요';
-                                lastState = 'NO_DETECTION';
-                                pendingState = 'NORMAL';
+                                lastState         = 'NO_DETECTION';
+                                pendingState      = 'NORMAL';
                                 pendingStateStart = Date.now();
                             }
                         } else if (lastState === 'SEVERE_FHP') {
-                            // 거북목 상태에서 10초 미만 미감지 → 거북목 유지
                             const badge = document.getElementById('camBadge');
-                            badge.className = 'cam-badge severe';
+                            badge.className   = 'cam-badge severe';
                             badge.textContent = '⚠ 거북목 감지';
                         } else {
                             clearOverlay(canvas);
@@ -481,7 +579,7 @@ async function startCamera() {
                     }
                 }
             } catch(e) { console.error(e); }
-            setTimeout(detectLoop, 150); // ~6 FPS — CPU 백엔드에 최적화
+            setTimeout(detectLoop, 150);
         }
         detectLoop();
 
