@@ -107,8 +107,12 @@ async function init() {
         stretchRunning = false;
         stream.getTracks().forEach(t => t.stop());
         stretchVideo.srcObject = null;
-        // popup.js 와의 통신: 완료 메시지 전달
-        chrome.runtime.sendMessage({ type: 'STRETCHING_DONE' });
+        
+        try {
+            if (chrome.runtime?.id)
+                // popup.js 와의 통신: 완료 메시지 전달
+                chrome.runtime.sendMessage({ type: 'STRETCHING_DONE' });
+        } catch {}
         window.close();
     };
 

@@ -10,6 +10,20 @@ const MIN_FHP_SEC   = 10;
 const KST_OFFSET    = 9 * 60 * 60 * 1000;
 const port = chrome.runtime.connect({ name: 'popup' });
 
+
+function safeRuntime(fn) {
+    try {
+        if (!chrome.runtime?.id) throw new Error('invalidated');
+        return fn();
+    } catch (e) {
+        if (e.message.includes('invalidated') || e.message.includes('Extension context')) {
+            loopRunning = false;
+            window.close();
+        }
+    }
+}
+
+
 // ── 페이지/탭 라우팅 (CSP 호환 — 인라인 script 대체) ──────
 (function initRouting() {
   var $ = function(id) { return document.getElementById(id); };
@@ -249,6 +263,8 @@ function bindSurveyEvents() {
 // ── 로그인 없이 바로 시작 (NFC 자동 인증 대응) ───────────
 // window.nfcLogin(userId) 으로 외부에서 호출 가능 (원본 동일)
 function startMain(id) {
+    // ── 버전 체크 ──
+    const myVer = chrome.runtime.getManifest().version;
     userId = id;
     document.getElementById('headerUser').textContent = userId;
 
@@ -346,24 +362,10 @@ async function finalize() {
     window.close();
 }
 
-// async function executeShutdown() {
-//     loopRunning = false;
-
-//     if (video.srcObject) {
-//         video.srcObject.getTracks().forEach(t => t.stop());
-//         video.srcObject = null;
-//     }
-
-//     if (totalFhpDuration < 5.0) {
-//         // 스트레칭 화면으로 전환 → stretching.html 별도 창으로 열기
-//         port.postMessage({ type: 'NEED_STRETCHING' }); // ← 추가
-//     }
-    
-//     finalize();
-// }
-
 window.addEventListener('beforeunload', () => {
+    loopRunning = false;
 
+    // context 가드 추가
     if (video.srcObject) {
         video.srcObject.getTracks().forEach(t => t.stop());
         video.srcObject = null;
@@ -373,7 +375,7 @@ window.addEventListener('beforeunload', () => {
         port.postMessage({ type: 'NEED_STRETCHING' });
     }
 
-    
+    finalize();
 });
 
 
@@ -408,7 +410,7 @@ async function startCamera() {
         loopRunning = true;
 
         async function detectLoop() {
-            if (!loopRunning) return;
+            if (!loopRunning || !chrome.runtime?.id) return;
             try {
                 const poses = await detectPose(detector, video);
                 if (poses.length > 0) {
