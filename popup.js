@@ -8,7 +8,7 @@ import { sendNotification }                               from './ui/notificatio
 const FUNCTIONS_URL = 'https://uprightai-func-c5eyevhngmhtbadr.centralus-01.azurewebsites.net/api';
 const MIN_FHP_SEC   = 10;
 const KST_OFFSET    = 9 * 60 * 60 * 1000;
-chrome.runtime.connect({ name: "popup" });
+const port = chrome.runtime.connect({ name: 'popup' });
 
 // ── 페이지/탭 라우팅 (CSP 호환 — 인라인 script 대체) ──────
 (function initRouting() {
@@ -329,8 +329,8 @@ async function sendSessionLog() {
 
 window.addEventListener('beforeunload', sendSessionLog);
 
-// ── 자동 종료 (오후 7시 KST) — 원본 동일 ─────────────────
-const AUTO_END_HOUR = 19;
+// ── 자동 종료 (오후 6시 KST) — 원본 동일 ─────────────────
+const AUTO_END_HOUR = 18;
 
 async function checkAutoLogout() {
     if (!token) return;   // 원본과 동일: token 없으면 skip
@@ -346,25 +346,36 @@ async function finalize() {
     window.close();
 }
 
-async function executeShutdown() {
-    loopRunning = false;
+// async function executeShutdown() {
+//     loopRunning = false;
+
+//     if (video.srcObject) {
+//         video.srcObject.getTracks().forEach(t => t.stop());
+//         video.srcObject = null;
+//     }
+
+//     if (totalFhpDuration < 5.0) {
+//         // 스트레칭 화면으로 전환 → stretching.html 별도 창으로 열기
+//         port.postMessage({ type: 'NEED_STRETCHING' }); // ← 추가
+//     }
+    
+//     finalize();
+// }
+
+window.addEventListener('beforeunload', () => {
 
     if (video.srcObject) {
         video.srcObject.getTracks().forEach(t => t.stop());
         video.srcObject = null;
     }
 
-    if (totalFhpDuration < 5.0) {
-        // 스트레칭 화면으로 전환 → stretching.html 별도 창으로 열기
-        window.close();
-    } else {
-        finalize();
+    if (totalFhpDuration < 5.0) {  // 테스트 조건
+        port.postMessage({ type: 'NEED_STRETCHING' });
     }
-}
 
+    
+});
 
-// ── 종료 버튼 (원본 동일) ────────────────────────────────
-document.getElementById('logoutBtn').addEventListener('click', executeShutdown);
 
 // ── 카메라 + 추론 루프 (원본 동일) ───────────────────────
 async function startCamera() {

@@ -1,15 +1,12 @@
-export function saveLocal(key, value) {
-
-    localStorage.setItem(
-        key,
-        JSON.stringify(value)
-    );
+export async function saveLocal(key, value) {
+    await chrome.storage.local.set({ [key]: value });
 }
 
+export async function loadLocal(key) {
+    const result = await chrome.storage.local.get(key);
+    return result[key] ?? null;
+}
 
-export function loadLocal(key) {
-
-    const value = localStorage.getItem(key);
-
-    return JSON.parse(value);
+export async function removeLocal(key) {
+    await chrome.storage.local.remove(key);
 }
