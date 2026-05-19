@@ -1,11 +1,9 @@
 import { loadMoveNet }                                                        from './ai/movenet_loader.js';
 import { detectPose }                                                         from './ai/detector.js';
 import { getBestSidePoints, calculateCVA, applyHysteresis, resetSideLock }   from './ai/posture_logic.js';
-import { drawOverlay, clearOverlay, drawChinTuckOverlay } from './ui/overlay.js';
+import { drawOverlay, clearOverlay } from './ui/overlay.js';
 import { getParams, logParamFrame }                       from './ui/param_panel.js';
 import { sendNotification }                               from './ui/notifications.js';
-import { evaluateChinTuck, resetChinTuckState,
-         requestChinTuckBaseline }                        from './ai/chin_tuck_logic.js';
 
 const FUNCTIONS_URL = 'https://uprightai-func-c5eyevhngmhtbadr.centralus-01.azurewebsites.net/api';
 const MIN_FHP_SEC   = 10;
@@ -14,7 +12,7 @@ const KST_OFFSET    = 9 * 60 * 60 * 1000;
 // ── 페이지/탭 라우팅 (CSP 호환 — 인라인 script 대체) ──────
 (function initRouting() {
   var $ = function(id) { return document.getElementById(id); };
-  var PAGES  = ['page-setup', 'page-main', 'page-stretching'];
+  var PAGES  = ['page-setup', 'page-main'];
   var TABS   = ['tab-live-page', 'tab-survey-page'];
   var TABBTN = ['tab-live', 'tab-survey'];
   function showPage(id) {
@@ -102,25 +100,7 @@ const KST_OFFSET    = 9 * 60 * 60 * 1000;
     $('resultEmoji').textContent = '🟡'; $('resultLabel').textContent = '번아웃 위험도 중간';
     $('resultDesc').textContent = '위험 지수 52% — 업무량과 휴식의 균형을 점검해보세요.';
   }
-  if (p === 'stretching-init') {
-    showPage('page-stretching');
-    $('stretchPillDot').style.background = 'var(--warn)'; $('stretchPillText').textContent = '준비 중';
-    $('stretchFeedbackMain').textContent = '기준 자세 측정 버튼을 눌러 시작하세요';
-    $('stretchFeedback').textContent = '카메라에 측면이 잘 보이도록 자세를 맞춰주세요.';
-    $('stretchSuccessNum').textContent = '0';
-    var ps = document.querySelector('.ps-cam-wrap');
-    if (ps) ps.innerHTML = '<div class="cam-loading"><div class="cam-loading-icon">🧘</div><div class="cam-loading-text">카메라 준비 중...</div><div class="shimmer-bar"></div></div>';
-  }
-  if (p === 'stretching') {
-    showPage('page-stretching');
-    $('stretchPillDot').style.background = 'var(--good)'; $('stretchPillText').textContent = '운동 중';
-    $('stretchFeedbackMain').textContent = '자세를 유지해주세요 — 5초 버티기';
-    $('stretchFeedback').textContent = '턱을 천천히 당겨 목 뒤를 길게 늘려주세요.';
-    $('stretchSuccessNum').textContent = '2';
-    $('stretchHoldBar').classList.add('show'); $('stretchHoldFill').style.width = '60%'; $('stretchHoldLabel').textContent = '3.0 / 5초';
-    var ps2 = document.querySelector('.ps-cam-wrap');
-    if (ps2) ps2.innerHTML = '<div class="cam-loading" style="background:#1A1A1E"><div class="cam-loading-icon">📷</div><div class="cam-loading-text">측면 인식 중...</div><div class="shimmer-bar"></div></div>';
-  }
+  // 스트레칭 페이지는 stretching.html 로 분리됨
 })();
 
 function nowKST() {
@@ -373,85 +353,19 @@ async function executeShutdown() {
         video.srcObject = null;
     }
 
-    if (totalFhpDuration > 5.0) {
-        // 스트레칭 화면으로 전환
-        document.getElementById('page-main').classList.remove('active');
-        document.getElementById('page-stretching').classList.add('active');
-
-        const stretchVideo  = document.getElementById('stretchVideo');
-        const stretchCanvas = document.getElementById('stretchCanvas');
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: { width: 400, height: 300, facingMode: 'user' }, audio: false
+    if (totalFhpDuration < 5.0) {
+        // 스트레칭 화면으로 전환 → stretching.html 별도 창으로 열기
+        chrome.windows.create({
+            url: chrome.runtime.getURL('stretching.html'),
+            type: 'popup',
+            width: 400,
+            height: 600
         });
-        stretchVideo.srcObject = stream;
-        await new Promise(r => stretchVideo.onloadedmetadata = r);
-        stretchCanvas.width  = stretchVideo.videoWidth;
-        stretchCanvas.height = stretchVideo.videoHeight;
-
-        resetChinTuckState();
-        let stretchRunning = true;
-
-        async function stretchLoop() {
-            if (!stretchRunning) return;
-            try {
-                const poses = await detectPose(detector, stretchVideo);
-                if (poses.length > 0) {
-                    const result = getBestSidePoints(poses[0].keypoints);
-                    if (result && result.confOk) {
-                        const cva         = calculateCVA(result.ear, result.shoulder);
-                        const poseQuality = getStretchPoseQuality(poses[0].keypoints, stretchCanvas.width);
-                        const chinResult  = evaluateChinTuck({
-                            ear: result.ear, shoulder: result.shoulder, cva, poseQuality
-                        });
-                        drawChinTuckOverlay(stretchCanvas, result.ear, result.shoulder, chinResult);
-                        // 피드백을 하단 패널 두 줄에 분리 출력
-                        const main   = document.getElementById('stretchFeedbackMain');
-                        const detail = document.getElementById('stretchFeedback');
-                        if (main)   main.textContent   = chinResult.message      || '';
-                        if (detail) detail.textContent = chinResult.detailMessage || '';
-                    }
-                }
-            } catch(e) { console.error(e); }
-            setTimeout(stretchLoop, 150);
-        }
-        stretchLoop();
-
-        document.getElementById('baselineBtn').onclick = () => requestChinTuckBaseline();
-
-        document.getElementById('stretchDoneBtn').onclick = () => {
-            stretchRunning = false;
-            stream.getTracks().forEach(t => t.stop());
-            stretchVideo.srcObject = null;
-            finalize();
-        };
     } else {
         finalize();
     }
 }
 
-// ── 사이드뷰 품질 (원본 동일) ─────────────────────────────
-function getStretchPoseQuality(keypoints, canvasWidth) {
-    const leftEar       = keypoints.find(k => k.name === 'left_ear');
-    const rightEar      = keypoints.find(k => k.name === 'right_ear');
-    const leftShoulder  = keypoints.find(k => k.name === 'left_shoulder');
-    const rightShoulder = keypoints.find(k => k.name === 'right_shoulder');
-
-    if (!leftEar || !rightEar || !leftShoulder || !rightShoulder)
-        return { isSideView: false, reason: 'KEYPOINT_MISSING' };
-
-    const width              = canvasWidth || 256;
-    const shoulderWidthRatio = Math.abs(leftShoulder.x - rightShoulder.x) / width;
-    const earWidthRatio      = Math.abs(leftEar.x - rightEar.x) / width;
-    const leftScore          = (leftEar.score + leftShoulder.score) / 2;
-    const rightScore         = (rightEar.score + rightShoulder.score) / 2;
-    const sideScoreGap       = Math.abs(leftScore - rightScore);
-
-    return {
-        isSideView: (shoulderWidthRatio <= 0.22 || (sideScoreGap >= 0.12 && shoulderWidthRatio <= 0.32))
-                    && !(leftEar.score > 0.45 && rightEar.score > 0.45 && earWidthRatio > 0.08),
-        shoulderWidthRatio, earWidthRatio, sideScoreGap, leftScore, rightScore
-    };
-}
 
 // ── 종료 버튼 (원본 동일) ────────────────────────────────
 document.getElementById('logoutBtn').addEventListener('click', executeShutdown);

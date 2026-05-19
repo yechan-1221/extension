@@ -10,7 +10,7 @@
 
   "web_accessible_resources": [
     {
-      "resources": ["ui/alert.html", "ui/alert.js"],
+      "resources": ["ui/alert.html", "ui/alert.js", "stretching.html", "stretching.js"],
       "matches": ["<all_urls>"]
     }
   ],

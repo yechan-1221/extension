@@ -453,73 +453,6 @@ body {
 .r-desc   { font-size: 11px; color: var(--ink2); line-height: 1.55; }
 .r-saved  { margin-top: 10px; font-size: 10px; color: var(--ink3); display: flex; align-items: center; justify-content: center; gap: 4px; }
 
-/* ═══════════════════════════════
-   STRETCHING PAGE
-═══════════════════════════════ */
-#page-stretching {
-  display: none;
-  flex-direction: column;
-  height: 600px;
-  background: var(--bg);
-}
-#page-stretching.active { display: flex; }
-.ps-cam-wrap { position: relative; flex: 1; min-height: 0; background: #1A1612; overflow: hidden; }
-#stretchVideo  { width: 100%; height: 100%; object-fit: cover; display: block; }
-#stretchCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-
-.ps-panel {
-  background: var(--bg);
-  border-top: 1px solid rgba(168,154,138,0.25);
-  padding: 12px 14px;
-  display: flex; flex-direction: column; gap: 9px;
-  flex-shrink: 0;
-}
-.ps-row   { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.ps-pill  {
-  display: inline-flex; align-items: center; gap: 7px;
-  background: var(--bg);
-  box-shadow: var(--nm-soft);
-  border-radius: 20px;
-  padding: 5px 13px;
-  font-size: 12px; font-weight: 700; color: var(--ink);
-}
-.ps-pill-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--warn); flex-shrink: 0; transition: background .2s; }
-.ps-counter  {
-  background: var(--bg);
-  box-shadow: var(--nm-soft);
-  border-radius: 10px;
-  padding: 5px 16px;
-  text-align: center;
-}
-.ps-cnum   { font-size: 20px; font-weight: 800; color: var(--good); line-height: 1; font-variant-numeric: tabular-nums; }
-.ps-clabel { font-size: 9px; font-weight: 700; color: var(--ink3); text-transform: uppercase; letter-spacing: .06em; }
-.ps-fmain  { font-size: 13px; font-weight: 700; color: var(--ink); min-height: 18px; }
-.ps-fdetail{ font-size: 11px; color: var(--ink2); line-height: 1.5; min-height: 14px; }
-.ps-hbar   { display: none; }
-.ps-hbar.show { display: block; }
-.ps-hbg    { height: 5px; background: var(--bg); box-shadow: var(--nm-inset); border-radius: 3px; overflow: hidden; margin-bottom: 3px; }
-.ps-hfill  { height: 100%; width: 0%; background: var(--good); border-radius: 3px; transition: width .15s linear; }
-.ps-hlabel { font-size: 10px; font-weight: 600; color: var(--ink3); text-align: right; }
-.ps-btns   { display: flex; gap: 8px; }
-.ps-btn {
-  flex: 1; padding: 11px 8px;
-  border-radius: 11px;
-  border: none;
-  font-size: 12px; font-weight: 700;
-  cursor: pointer; font-family: inherit;
-  transition: all .15s;
-}
-#baselineBtn   {
-  background: var(--ac); color: #fff;
-  box-shadow: 3px 3px 8px rgba(85,103,220,0.30), -2px -2px 5px rgba(255,255,255,0.4);
-}
-#baselineBtn:hover { background: #4A5EC8; }
-#stretchDoneBtn {
-  background: var(--bg);
-  box-shadow: var(--nm-soft);
-  color: var(--ink2);
-}
-#stretchDoneBtn:hover { box-shadow: var(--nm-raise); color: var(--ink); }
 
 /* ═══════════════════════════════
    DIVIDER
@@ -674,48 +607,6 @@ body {
   </div>
 </div>
 
-<!-- ═══ STRETCHING PAGE ═══ -->
-<div id="page-stretching" class="page">
-  <div class="header">
-    <div class="hl">
-      <div class="logo">🧘</div>
-      <div>
-        <div class="htitle">스트레칭 모드</div>
-        <div class="hsub" style="color:var(--good)">턱당기기 운동</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="ps-cam-wrap">
-    <video id="stretchVideo" autoplay playsinline muted></video>
-    <canvas id="stretchCanvas"></canvas>
-  </div>
-
-  <div class="ps-panel">
-    <div class="ps-row">
-      <div class="ps-pill">
-        <div class="ps-pill-dot" id="stretchPillDot"></div>
-        <span id="stretchPillText">준비 중</span>
-      </div>
-      <div class="ps-counter">
-        <div class="ps-cnum" id="stretchSuccessNum">0</div>
-        <div class="ps-clabel">SUCCESS</div>
-      </div>
-    </div>
-    <div>
-      <div class="ps-fmain"   id="stretchFeedbackMain">기준 자세 측정 버튼을 눌러 시작하세요</div>
-      <div class="ps-fdetail" id="stretchFeedback"></div>
-    </div>
-    <div class="ps-hbar" id="stretchHoldBar">
-      <div class="ps-hbg"><div class="ps-hfill" id="stretchHoldFill"></div></div>
-      <div class="ps-hlabel" id="stretchHoldLabel">0 / 5초</div>
-    </div>
-    <div class="ps-btns">
-      <button class="ps-btn" id="baselineBtn">기준 자세 측정</button>
-      <button class="ps-btn" id="stretchDoneBtn">스트레칭 완료 ✓</button>
-    </div>
-  </div>
-</div>
 
 <script src="lib/tf-core.min.js"></script>
 <script src="lib/tf-backend-cpu.min.js"></script>
