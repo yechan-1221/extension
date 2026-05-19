@@ -13,7 +13,7 @@ chrome.runtime.connect({ name: "popup" });
 // ── 페이지/탭 라우팅 (CSP 호환 — 인라인 script 대체) ──────
 (function initRouting() {
   var $ = function(id) { return document.getElementById(id); };
-  var PAGES  = ['page-setup', 'page-main'];
+  var PAGES  = ['page-main'];
   var TABS   = ['tab-live-page', 'tab-survey-page'];
   var TABBTN = ['tab-live', 'tab-survey'];
   function showPage(id) {
@@ -30,8 +30,8 @@ chrome.runtime.connect({ name: "popup" });
   var p = new URLSearchParams(location.search).get('state') || '';
 
   if (!p) {
-    // 프로덕션: setup 화면 표시, 탭 바인딩
-    showPage('page-setup');
+    // 프로덕션: 탭 바인딩
+    showPage('page-main');
     $('tab-live').addEventListener('click', function() { showTab('tab-live-page','tab-live'); });
     $('tab-survey').addEventListener('click', function() { showTab('tab-survey-page','tab-survey'); });
     return;
@@ -257,7 +257,6 @@ function startMain(id) {
     if (sub) sub.textContent = `${userId}님, 자세 모니터링을 시작합니다. 올바른 자세를 유지해주세요.`;
 
     // 페이지-메인 표시
-    document.getElementById('page-setup').classList.remove('active');
     document.getElementById('page-main').classList.add('active');
 
     updateSurveyBanner();
@@ -281,29 +280,12 @@ window.nfcLogin = id => {
     startMain(id);
 };
 
-// ── 시작하기 버튼 ─────────────────────────────────────────
-const setupBtn = document.getElementById('setupBtn');
-if (setupBtn) {
-    setupBtn.addEventListener('click', () => {
-        const id = document.getElementById('setupId').value.trim();
-        if (!id || id.length < 2) {
-            document.getElementById('setupMsg').textContent = '사번/아이디를 2자 이상 입력하세요.';
-            return;
-        }
-        try { localStorage.setItem('uprightai_user_id', id); } catch {}
-        startMain(id);
-    });
-}
-
-// 페이지 로드 시 저장된 userId가 있으면 자동 시작 (단, preview 모드 제외)
+// ── 자동 시작 (NFC 자동화) ─────────────────────────────
 (function init() {
     if (new URLSearchParams(location.search).get('state')) return;
     let saved = null;
     try { saved = localStorage.getItem('uprightai_user_id'); } catch {}
-    if (saved) {
-        document.getElementById('setupId').value = saved;
-        // 자동 시작은 하지 않고 input만 채워줌 — 사용자가 직접 버튼 누르도록
-    }
+    startMain(saved || 'emp_001');
 })();
 
 // ── 세션 로그 전송 (원본 동일) ────────────────────────────
@@ -363,8 +345,6 @@ async function executeShutdown() {
 }
 
 
-// ── 종료 버튼 (원본 동일) ────────────────────────────────
-document.getElementById('logoutBtn').addEventListener('click', executeShutdown);
 
 // ── 카메라 + 추론 루프 (원본 동일) ───────────────────────
 async function startCamera() {
