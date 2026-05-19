@@ -8,6 +8,7 @@ import { sendNotification }                               from './ui/notificatio
 const FUNCTIONS_URL = 'https://uprightai-func-c5eyevhngmhtbadr.centralus-01.azurewebsites.net/api';
 const MIN_FHP_SEC   = 10;
 const KST_OFFSET    = 9 * 60 * 60 * 1000;
+chrome.runtime.connect({ name: "popup" });
 
 // ── 페이지/탭 라우팅 (CSP 호환 — 인라인 script 대체) ──────
 (function initRouting() {
@@ -355,12 +356,7 @@ async function executeShutdown() {
 
     if (totalFhpDuration < 5.0) {
         // 스트레칭 화면으로 전환 → stretching.html 별도 창으로 열기
-        chrome.windows.create({
-            url: chrome.runtime.getURL('stretching.html'),
-            type: 'popup',
-            width: 400,
-            height: 600
-        });
+        window.close();
     } else {
         finalize();
     }
