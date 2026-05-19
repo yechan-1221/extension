@@ -300,6 +300,7 @@ async function sendSessionLog() {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + token
             },
+            keepalive: true,
             body: JSON.stringify({
                 user_id: userId, date: todayKST(),
                 session_index: sessionIdx, fhp_events: eventsToSend
@@ -439,6 +440,9 @@ async function startCamera() {
                             if (durSec >= MIN_FHP_SEC) {
                                 fhpEvents.push({ start: fhpStart, end: nowKST() });
                                 console.log('FHP recorded:', durSec.toFixed(1) + 's');
+
+                                document.getElementById('sessionFhpCount').textContent = fhpEvents.length;
+                                document.getElementById('sessionFhpSec').textContent = Math.round(totalFhpDuration);
                             }
                             fhpStart = null; fhpStartMs = null;
                         }
