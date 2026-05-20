@@ -383,6 +383,14 @@ async function startCamera() {
     noDetectionStart  = null;
 
     try {
+        try {
+            await tf.setBackend('webgl');
+            await tf.ready();
+            console.log("WebGL 활성화", tf.getBackend()); 
+        } catch (backendError) {
+            console.warn("WebGL 초기화 실패, 기본 백엔드로 진행:", backendError);
+        }
+
         const stream = await navigator.mediaDevices.getUserMedia({
             video: { width: 256, height: 256, facingMode: 'user' }, audio: false
         });
@@ -403,13 +411,24 @@ async function startCamera() {
 
         loopRunning = true;
 
+        let perfInferenceSum = 0;
+        let perfInferenceMax = 0;
+        let perfInferenceMin = Infinity;
+        let perfFrameCount = 0;
+        let perfFpsTimer = Date.now();
+        let perfDetectSuccess = 0;
+        let perfSideSuccess = 0;
+
         async function detectLoop() {
             if (!loopRunning || !chrome.runtime?.id) return;
+            const frameStart = performance.now();
             try {
                 const poses = await detectPose(detector, video);
                 if (poses.length > 0) {
+                    perfDetectSuccess++;
                     const result = getBestSidePoints(poses[0].keypoints);
                     if (result && result.confOk) {
+                        perfSideSuccess++;
                         noDetectionStart = null;
                         const cva      = calculateCVA(result.ear, result.shoulder);
                         const rawState = applyHysteresis(cva, lastState);
@@ -499,7 +518,47 @@ async function startCamera() {
                     }
                 }
             } catch(e) { console.error(e); }
-            setTimeout(detectLoop, 150);
+            
+            // ── 성능 지표 콘솔 출력 (매 30프레임마다) ────────────
+            const inferenceMs = performance.now() - frameStart;
+            perfInferenceSum += inferenceMs;
+            perfInferenceMax  = Math.max(perfInferenceMax, inferenceMs);
+            perfInferenceMin  = Math.min(perfInferenceMin, inferenceMs);
+            perfFrameCount++;
+
+            const elapsed = Date.now() - perfFpsTimer;
+            if (perfFrameCount >= 30) {
+                const fps         = (perfFrameCount / (elapsed / 1000)).toFixed(1);
+                const avgMs       = (perfInferenceSum / perfFrameCount).toFixed(1);
+                const maxMs       = perfInferenceMax.toFixed(1);
+                const minMs       = perfInferenceMin.toFixed(1);
+                const detectRate  = ((perfDetectSuccess / perfFrameCount) * 100).toFixed(1);
+                const sideRate    = perfDetectSuccess > 0
+                    ? ((perfSideSuccess / perfDetectSuccess) * 100).toFixed(1)
+                    : '0.0';
+                const currentCVA   = document.getElementById('liveCVA')?.textContent || '-';
+
+                console.group('%c📊 UprightAI 성능 지표', 'color:#6366f1;font-weight:bold;');
+                console.log(`%c추론 시간     %c평균 ${avgMs}ms  최소 ${minMs}ms  최대 ${maxMs}ms`, 'color:#94a3b8', 'color:#e2e8f0');
+                console.log(`%c실제 FPS      %c${fps} fps`,                                        'color:#94a3b8', 'color:#e2e8f0');
+                console.log(`%cCVA           %c${currentCVA}°`,                                   'color:#94a3b8', 'color:#e2e8f0');
+                console.log(`%c상태          %c${lastState}`,                                     'color:#94a3b8', 'color:#e2e8f0');
+                console.log(`%c키포인트 감지율 %c${detectRate}%`,                                 'color:#94a3b8', 'color:#e2e8f0');
+                console.log(`%c측면 인식률   %c${sideRate}%`,                                    'color:#94a3b8', 'color:#e2e8f0');
+                console.log(`%c거북목 누적   %c${totalFhpDuration.toFixed(1)}초`,                'color:#94a3b8', 'color:#e2e8f0');
+                console.log(`%c거북목 이벤트 %c${fhpEvents.length}건`,                           'color:#94a3b8', 'color:#e2e8f0');
+                console.groupEnd();
+
+                perfFrameCount    = 0;
+                perfFpsTimer      = Date.now();
+                perfInferenceSum  = 0;
+                perfInferenceMax  = 0;
+                perfInferenceMin  = Infinity;
+                perfDetectSuccess = 0;
+                perfSideSuccess   = 0;
+            }
+
+            setTimeout(detectLoop, 150); // ~6 FPS — CPU 백엔드에 최적화
         }
         detectLoop();
 

@@ -1,6 +1,6 @@
 // extension/ai/posture_logic.js
 
-// [개선 3] Confidence 기준값 0.5 → 0.3으로 낮춰 인식률 향상
+// [개선 3] Confidence 기준값 0.5 → 0.4으로 낮춰 인식률 향상
 const CONF_THRESHOLD = 0.4;
 
 // 전략 1 — 사이드 히스테리시스
