@@ -122,26 +122,26 @@ function updateStretchPanel(result) {
 
     cvaValue.textContent = cvaText;
 
-    const holdSec = typeof result.holdSeconds === 'number'
-        ? result.holdSeconds.toFixed(1)
-        : '0.0';
+    // const holdSec = typeof result.holdSeconds === 'number'
+    //     ? result.holdSeconds.toFixed(1)
+    //     : '0.0';
 
-    const holdTarget = 5;
+    // const holdTarget = 5;
 
-    if (result.status === 'HOLD') {
-        holdLabel.textContent = `${holdSec} / ${holdTarget}초`;
-    } else {
-        holdLabel.textContent = `0.0 / ${holdTarget}초`;
-    }
+    // if (result.status === 'HOLD') {
+    //     holdLabel.textContent = `${holdSec} / ${holdTarget}초`;
+    // } else {
+    //     holdLabel.textContent = `0.0 / ${holdTarget}초`;
+    // }
 
-    // 5. 유지 progress bar 표시
-    if (typeof result.progress === 'number' && result.status === 'HOLD') {
-        holdBar.classList.add('show');
-        holdFill.style.width = `${Math.min(100, Math.max(0, result.progress * 100)).toFixed(1)}%`;
-    } else {
-        holdBar.classList.remove('show');
-        holdFill.style.width = '0%';
-    }
+    // // 5. 유지 progress bar 표시
+    // if (typeof result.progress === 'number' && result.status === 'HOLD') {
+    //     holdBar.classList.add('show');
+    //     holdFill.style.width = `${Math.min(100, Math.max(0, result.progress * 100)).toFixed(1)}%`;
+    // } else {
+    //     holdBar.classList.remove('show');
+    //     holdFill.style.width = '0%';
+    // }
 }
 
 // ── 메인 초기화 ──────────────────────────────────────────
