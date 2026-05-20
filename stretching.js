@@ -3,6 +3,7 @@ import { detectPose }                                 from './ai/detector.js';
 import { drawChinTuckOverlay }                        from './ui/overlay.js';
 import { evaluateChinTuck, resetChinTuckState,
          requestChinTuckBaseline }                    from './ai/chin_tuck_logic.js';
+import { getBestSidePoints, calculateCVA }            from './ai/posture_logic.js';
 
 // ── DOM refs ──────────────────────────────────────────────
 const stretchVideo  = document.getElementById('stretchVideo');
@@ -16,7 +17,6 @@ const holdBar       = document.getElementById('stretchHoldBar');
 const holdFill      = document.getElementById('stretchHoldFill');
 const holdLabel     = document.getElementById('stretchHoldLabel');
 const baselineBtn   = document.getElementById('baselineBtn');
-const doneBtn       = document.getElementById('stretchDoneBtn');
 
 // ── 사이드뷰 품질 판별 ────────────────────────────────────
 function getStretchPoseQuality(keypoints, canvasWidth) {
@@ -101,32 +101,33 @@ async function init() {
 
     // 기준 자세 측정 버튼
     baselineBtn.onclick = () => requestChinTuckBaseline();
-
-    // 완료 버튼
-    doneBtn.onclick = () => {
-        stretchRunning = false;
-        stream.getTracks().forEach(t => t.stop());
-        stretchVideo.srcObject = null;
-        
-        try {
-            if (chrome.runtime?.id)
-                // popup.js 와의 통신: 완료 메시지 전달
-                chrome.runtime.sendMessage({ type: 'STRETCHING_DONE' });
-        } catch {}
-        window.close();
-    };
-
     // 추론 루프
     async function detectLoop() {
         if (!stretchRunning) return;
         try {
             const poses = await detectPose(detector, stretchVideo);
             if (poses.length > 0) {
-                const kp      = poses[0].keypoints;
-                const quality = getStretchPoseQuality(kp, stretchCanvas.width);
-                const result  = evaluateChinTuck(kp, quality);
-
-                drawChinTuckOverlay(stretchCanvas, kp, result);
+                const kp         = poses[0].keypoints;
+                const quality    = getStretchPoseQuality(kp, stretchCanvas.width);
+                const sideResult = getBestSidePoints(kp);
+                if (sideResult && sideResult.confOk) {
+                    const cva    = calculateCVA(sideResult.ear, sideResult.shoulder);
+                    const result = evaluateChinTuck({
+                        ear: sideResult.ear, shoulder: sideResult.shoulder,
+                        cva, poseQuality: quality
+                    });
+                    if (window.onChinTuckUpdate) {
+                        const isBaseline = ['WAITING','COUNTDOWN','BASELINE','BASELINE_SIDE_WAIT','BASELINE_UNSTABLE'].includes(result.status);
+                        window.onChinTuckUpdate({
+                            phase: isBaseline ? 'baseline' : 'exercise',
+                            successCount: result.successCount,
+                            holdProgress: result.progress > 0 ? result.progress : null,
+                            holdSec: result.holdSeconds, holdTarget: 5,
+                            message: result.message, detail: result.detailMessage
+                        });
+                    }
+                    drawChinTuckOverlay(stretchCanvas, kp, result);
+                }
             }
         } catch (e) { console.error(e); }
         setTimeout(detectLoop, 150);
