@@ -300,6 +300,7 @@ async function sendSessionLog() {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + token
             },
+            keepalive: true,
             body: JSON.stringify({
                 user_id: userId, date: todayKST(),
                 session_index: sessionIdx, fhp_events: eventsToSend
@@ -308,6 +309,18 @@ async function sendSessionLog() {
         if (res.ok) { console.log('Log sent:', eventsToSend.length, 'events'); sessionIdx++; }
     } catch(e) { console.error(e); }
 }
+
+setInterval(sendSessionLog, 60 * 1000);
+
+window.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && fhpEvents.length > 0) {
+        chrome.runtime.sendMessage({
+            type: 'SEND_FINAL_LOG',
+            payload: { userId, token, fhpEvents: [...fhpEvents], sessionIdx, date: todayKST() }
+        });
+        fhpEvents = [];
+    }
+});
 
 window.addEventListener('beforeunload', sendSessionLog);
 
@@ -439,6 +452,9 @@ async function startCamera() {
                             if (durSec >= MIN_FHP_SEC) {
                                 fhpEvents.push({ start: fhpStart, end: nowKST() });
                                 console.log('FHP recorded:', durSec.toFixed(1) + 's');
+
+                                document.getElementById('sessionFhpCount').textContent = fhpEvents.length;
+                                document.getElementById('sessionFhpSec').textContent = Math.round(totalFhpDuration);
                             }
                             fhpStart = null; fhpStartMs = null;
                         }
