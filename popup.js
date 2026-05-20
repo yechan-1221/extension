@@ -310,6 +310,18 @@ async function sendSessionLog() {
     } catch(e) { console.error(e); }
 }
 
+setInterval(sendSessionLog, 60 * 1000);
+
+window.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && fhpEvents.length > 0) {
+        chrome.runtime.sendMessage({
+            type: 'SEND_FINAL_LOG',
+            payload: { userId, token, fhpEvents: [...fhpEvents], sessionIdx, date: todayKST() }
+        });
+        fhpEvents = [];
+    }
+});
+
 window.addEventListener('beforeunload', sendSessionLog);
 
 // ── 자동 종료 (오후 7시 KST) — 원본 동일 ─────────────────
