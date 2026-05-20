@@ -10,6 +10,7 @@ const stretchVideo  = document.getElementById('stretchVideo');
 const stretchCanvas = document.getElementById('stretchCanvas');
 const pillDot       = document.getElementById('stretchPillDot');
 const pillText      = document.getElementById('stretchPillText');
+const cvaValue      = document.getElementById('stretchCvaValue');
 const feedbackMain  = document.getElementById('stretchFeedbackMain');
 const feedbackSub   = document.getElementById('stretchFeedback');
 const successNum    = document.getElementById('stretchSuccessNum');
@@ -17,7 +18,6 @@ const holdBar       = document.getElementById('stretchHoldBar');
 const holdFill      = document.getElementById('stretchHoldFill');
 const holdLabel     = document.getElementById('stretchHoldLabel');
 const baselineBtn   = document.getElementById('baselineBtn');
-const doneBtn       = document.getElementById('stretchDoneBtn');
 
 // ── 사이드뷰 품질 판단: 스트레칭 기준자세 측정용 완화 버전 ─────────────────────────────
 function getStretchPoseQuality(keypoints, canvasWidth) {
@@ -126,10 +126,12 @@ function updateStretchPanel(result) {
         pillText.textContent = '준비 중';
     }
 
-    // 4. CVA 값을 아래 패널에 표시
+    // 4. CVA 값을 가운데 박스에 표시
     const cvaText = typeof result.cva === 'number'
         ? `CVA ${result.cva.toFixed(1)}°`
         : 'CVA --';
+
+    cvaValue.textContent = cvaText;
 
     const holdSec = typeof result.holdSeconds === 'number'
         ? result.holdSeconds.toFixed(1)
@@ -137,7 +139,11 @@ function updateStretchPanel(result) {
 
     const holdTarget = 5;
 
-    holdLabel.textContent = `${holdSec} / ${holdTarget}초 · ${cvaText}`;
+    if (result.status === 'HOLD') {
+        holdLabel.textContent = `${holdSec} / ${holdTarget}초`;
+    } else {
+        holdLabel.textContent = `0.0 / ${holdTarget}초`;
+    }
 
     // 5. 유지 progress bar 표시
     if (typeof result.progress === 'number' && result.status === 'HOLD') {
@@ -186,17 +192,6 @@ async function init() {
 
     // 기준 자세 측정 버튼
     baselineBtn.onclick = () => requestChinTuckBaseline();
-
-    // 완료 버튼
-    doneBtn.onclick = () => {
-        stretchRunning = false;
-        stream.getTracks().forEach(t => t.stop());
-        stretchVideo.srcObject = null;
-        // popup.js 와의 통신: 완료 메시지 전달
-        chrome.runtime.sendMessage({ type: 'STRETCHING_DONE' });
-        window.close();
-    };
-
 
     // 추론 루프
     async function detectLoop() {

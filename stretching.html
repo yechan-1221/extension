@@ -86,20 +86,35 @@ body {
   display: flex; flex-direction: column; gap: 9px;
   flex-shrink: 0;
 }
-.ps-row   { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.ps-pill  {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 74px;
+.ps-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  align-items: stretch;
+}
+
+.ps-info-box {
+  height: 46px;
+  border-radius: 12px;
   background: var(--bg);
   box-shadow: var(--nm-soft);
-  border-radius: 20px;
-  padding: 5px 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* 왼쪽 상태 박스 */
+.ps-pill {
+  position: relative;
+  padding: 0 8px;
   font-size: 12px;
   font-weight: 700;
   color: var(--ink);
+}
+
+.ps-pill span {
+  width: 100%;
   text-align: center;
 }
 
@@ -112,15 +127,46 @@ body {
   background: var(--warn);
   transition: background .2s;
 }
-.ps-counter  {
-  background: var(--bg);
-  box-shadow: var(--nm-soft);
-  border-radius: 10px;
-  padding: 5px 16px;
-  text-align: center;
+
+/* 가운데 CVA 박스 */
+.ps-cva {
+  flex-direction: column;
+  gap: 2px;
 }
-.ps-cnum   { font-size: 20px; font-weight: 800; color: var(--good); line-height: 1; font-variant-numeric: tabular-nums; }
-.ps-clabel { font-size: 9px; font-weight: 700; color: var(--ink3); text-transform: uppercase; letter-spacing: .06em; }
+
+.ps-cva-value {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ac);
+  line-height: 1;
+}
+
+.ps-cva-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--ink3);
+  line-height: 1;
+}
+
+/* 오른쪽 성공 횟수 박스 */
+.ps-counter {
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ps-cnum {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--good);
+  line-height: 1;
+}
+
+.ps-clabel {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--ink3);
+  line-height: 1;
+}
 .ps-fmain  { font-size: 13px; font-weight: 700; color: var(--ink); min-height: 18px; }
 .ps-fdetail{ font-size: 11px; color: var(--ink2); line-height: 1.5; min-height: 14px; }
 .ps-hbar   { display: none; }
@@ -128,26 +174,36 @@ body {
 .ps-hbg    { height: 5px; background: var(--bg); box-shadow: var(--nm-inset); border-radius: 3px; overflow: hidden; margin-bottom: 3px; }
 .ps-hfill  { height: 100%; width: 0%; background: var(--good); border-radius: 3px; transition: width .15s linear; }
 .ps-hlabel { font-size: 10px; font-weight: 600; color: var(--ink3); text-align: right; }
-.ps-btns   { display: flex; gap: 8px; }
+.ps-btns {
+  display: block;
+  width: 100%;
+}
+
 .ps-btn {
-  flex: 1; padding: 11px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 12px 8px;
   border-radius: 11px;
   border: none;
-  font-size: 12px; font-weight: 700;
-  cursor: pointer; font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+  font-family: inherit;
   transition: all .15s;
 }
+
 #baselineBtn {
-  background: var(--ac); color: #fff;
+  background: var(--ac);
+  color: #fff;
   box-shadow: 3px 3px 8px rgba(85,103,220,0.30), -2px -2px 5px rgba(255,255,255,0.4);
 }
-#baselineBtn:hover { background: #4A5EC8; }
-#stretchDoneBtn {
-  background: var(--bg);
-  box-shadow: var(--nm-soft);
-  color: var(--ink2);
+
+#baselineBtn:hover {
+  background: #4A5EC8;
 }
-#stretchDoneBtn:hover { box-shadow: var(--nm-raise); color: var(--ink); }
 </style>
 </head>
 <body>
@@ -169,13 +225,19 @@ body {
 
 <div class="ps-panel">
   <div class="ps-row">
-    <div class="ps-pill">
+    <div class="ps-info-box ps-pill">
       <div class="ps-pill-dot" id="stretchPillDot"></div>
       <span id="stretchPillText">준비 중</span>
     </div>
-    <div class="ps-counter">
+
+    <div class="ps-info-box ps-cva">
+      <div class="ps-cva-label">현재 각도</div>
+      <div class="ps-cva-value" id="stretchCvaValue">CVA --</div>  
+    </div>
+
+    <div class="ps-info-box ps-counter">
+      <div class="ps-clabel">성공 횟수</div>
       <div class="ps-cnum" id="stretchSuccessNum">0</div>
-      <div class="ps-clabel">SUCCESS</div>
     </div>
   </div>
   <div>
@@ -185,10 +247,9 @@ body {
   <div class="ps-hbar" id="stretchHoldBar">
     <div class="ps-hbg"><div class="ps-hfill" id="stretchHoldFill"></div></div>
   </div>
-  <div class="ps-hlabel" id="stretchHoldLabel">0 / 5초 · CVA --</div>
+  <div class="ps-hlabel" id="stretchHoldLabel">0 / 5초</div>
   <div class="ps-btns">
     <button class="ps-btn" id="baselineBtn">기준 자세 측정</button>
-    <button class="ps-btn" id="stretchDoneBtn">스트레칭 완료 ✓</button>
   </div>
 </div>
 

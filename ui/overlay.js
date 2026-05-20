@@ -92,17 +92,18 @@ export function drawChinTuckOverlay(canvas, ear, shoulder, result) {
     ctx.fillStyle = statusColor;
     //ctx.fillText('MODE: STRETCH', 20, 30);
 
-    ctx.font = 'bold 22px Arial';
-    ctx.fillText(result.feedbackLabel || result.status, 20, 30); //62
+    // 패널과 중복되는 안내 문구는 오버레이에 표시하지 않음
+    // ctx.font = 'bold 22px Arial';
+    // ctx.fillText(result.feedbackLabel || result.status, 20, 30); //62
 
-    ctx.font = 'bold 17px Arial';
-    ctx.fillText(result.message, 20, 60); // 90
+    // ctx.font = 'bold 17px Arial';
+    // ctx.fillText(result.message, 20, 60); // 90
 
-    if (result.detailMessage) {
-        ctx.font = '15px Arial';
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillText(result.detailMessage, 20, 90); //115
-    }
+    // if (result.detailMessage) {
+    //     ctx.font = '15px Arial';
+    //     ctx.fillStyle = '#FFFFFF';
+    //     ctx.fillText(result.detailMessage, 20, 90); //115
+    // }
 
     // if (result.status === 'COUNTDOWN') {
     //     const match = String(result.message || '').match(/(\d+)/);
