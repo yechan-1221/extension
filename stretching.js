@@ -14,9 +14,6 @@ const cvaValue      = document.getElementById('stretchCvaValue');
 const feedbackMain  = document.getElementById('stretchFeedbackMain');
 const feedbackSub   = document.getElementById('stretchFeedback');
 const successNum    = document.getElementById('stretchSuccessNum');
-const holdBar       = document.getElementById('stretchHoldBar');
-const holdFill      = document.getElementById('stretchHoldFill');
-const holdLabel     = document.getElementById('stretchHoldLabel');
 const baselineBtn   = document.getElementById('baselineBtn');
 
 // ── 사이드뷰 품질 판단: 스트레칭 기준자세 측정용 완화 버전 ─────────────────────────────
