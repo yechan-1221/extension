@@ -65,16 +65,61 @@ chrome.action.onClicked.addListener(async () => {
     openPopup();
 });
 
-// ─── 팝업 닫히면 스트레칭 창 띄우기 (팀원 코드) ──────────
+// ── 1. 스토어 업데이트 감지 및 창 정리 로직 (필수) ──
+chrome.runtime.onUpdateAvailable.addListener(async (details) => {
+    console.log(`[Background] 새 버전(${details.version}) 업데이트 대기 중... 기존 창 정리 시작`);
+    
+    try {
+        const wins = await chrome.windows.getAll({ populate: true });
+        const windowsToClose = new Set(); 
+
+        wins.forEach(win => {
+            win.tabs?.forEach(tab => {
+                if (tab.url?.includes('popup.html') || tab.url?.includes('stretching.html')) {
+                    windowsToClose.add(win.id);
+                }
+            });
+        });
+
+        for (const winId of windowsToClose) {
+            await chrome.windows.remove(winId).catch(() => {}); 
+        }
+
+        console.log('[Background] 창 정리 완료. 익스텐션을 재시작합니다.');
+        chrome.runtime.reload();
+
+    } catch (error) {
+        console.error('[Background] 업데이트 창 정리 중 에러 발생:', error);
+        chrome.runtime.reload(); 
+    }
+});
+
+// ── 2. 익스텐션 실행 시 업데이트 즉시 확인 (선택 사항, 추천) ──
+// 크롬이 스스로 확인하는 주기(몇 시간)를 기다리지 않고 바로 찔러봅니다.
+chrome.runtime.requestUpdateCheck((status) => {
+    if (status === "update_available") {
+        console.log("[Background] 스토어에서 새 버전을 발견했습니다! 다운로드 후 업데이트를 진행합니다.");
+    }
+});
+
+// ── 문제 2: popup 닫힐 때 거북목 조건이면 stretching 창 열기 ──
 chrome.runtime.onConnect.addListener((port) => {
     if (port.name === 'popup') {
+        let needStretching = false;
+
+        port.onMessage.addListener((msg) => {
+            if (msg.type === 'NEED_STRETCHING') needStretching = true;
+        });
+
         port.onDisconnect.addListener(() => {
-            chrome.windows.create({
-                url: chrome.runtime.getURL('stretching.html'),
-                type: 'popup',
-                width: 400, //440
-                height: 600 //640
-            });
+            if (needStretching) {
+                chrome.windows.create({
+                    url: chrome.runtime.getURL('stretching.html'),
+                    type: 'popup',
+                    width: 400,
+                    height: 600
+                });
+            }
         });
     }
 });

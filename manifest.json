@@ -3,6 +3,7 @@
   "name": "UprightAI",
   "version": "1.0",
   "description": "Realtime posture monitoring",
+  "minimum_chrome_version": "148.0.0.0",
 
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"

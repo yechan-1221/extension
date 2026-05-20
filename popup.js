@@ -8,7 +8,21 @@ import { sendNotification }                               from './ui/notificatio
 const FUNCTIONS_URL = 'https://uprightai-func-c5eyevhngmhtbadr.centralus-01.azurewebsites.net/api';
 const MIN_FHP_SEC   = 10;
 const KST_OFFSET    = 9 * 60 * 60 * 1000;
-chrome.runtime.connect({ name: "popup" });
+const port = chrome.runtime.connect({ name: 'popup' });
+
+
+function safeRuntime(fn) {
+    try {
+        if (!chrome.runtime?.id) throw new Error('invalidated');
+        return fn();
+    } catch (e) {
+        if (e.message.includes('invalidated') || e.message.includes('Extension context')) {
+            loopRunning = false;
+            window.close();
+        }
+    }
+}
+
 
 // ── 페이지/탭 라우팅 (CSP 호환 — 인라인 script 대체) ──────
 (function initRouting() {
@@ -141,7 +155,7 @@ updateTime();
 // ── 설문 관련 ─────────────────────────────────────────────
 const isWed         = () => new Date(Date.now() + KST_OFFSET).getDay() === 3;
 const daysToWed     = () => { const d = new Date(Date.now() + KST_OFFSET).getDay(); return ((3 - d + 7) % 7) || 7; };
-const surveyKey     = () => `survey_done_${todayKST()}_${'test01'}`;
+const surveyKey     = () => `survey_done_${todayKST()}_${userId}`;
 const isSurveyDone  = () => { try { return !!localStorage.getItem(surveyKey()); } catch { return false; } };
 const markSurveyDone = () => { try { localStorage.setItem(surveyKey(), '1'); } catch {} };
 
@@ -204,7 +218,7 @@ async function submitSurvey() {
         await fetch(FUNCTIONS_URL + '/survey', {
             method: 'POST', headers,
             body: JSON.stringify({
-                user_id: 'test01', date: todayKST(),
+                user_id: userId, date: todayKST(),
                 workload: w, mental_fatigue: f,
                 sleep_quality: sleep, burnout_sign: sign, comment,
                 burn_rate: parseFloat(burn.toFixed(4)), risk_level: level,
@@ -249,12 +263,14 @@ function bindSurveyEvents() {
 // ── 로그인 없이 바로 시작 (NFC 자동 인증 대응) ───────────
 // window.nfcLogin(userId) 으로 외부에서 호출 가능 (원본 동일)
 function startMain(id) {
+    // ── 버전 체크 ──
+    const myVer = chrome.runtime.getManifest().version;
     userId = 'test01';
     document.getElementById('headerUser').textContent = userId;
 
     // NFC 배너 서브 텍스트에 사용자명 반영
     const sub = document.getElementById('nfcBannerSub');
-    if (sub) sub.textContent = `${'test01'}님, 자세 모니터링을 시작합니다. 올바른 자세를 유지해주세요.`;
+    if (sub) sub.textContent = `${userId}님, 자세 모니터링을 시작합니다. 올바른 자세를 유지해주세요.`;
 
     // 페이지-메인 표시
     document.getElementById('page-main').classList.add('active');
@@ -266,7 +282,7 @@ function startMain(id) {
     fetch(FUNCTIONS_URL + '/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: 'test01', password: 'test1234' })
+        body: JSON.stringify({ user_id: userId, password: 'test1234' })
     }).then(r => r.ok ? r.json() : null)
       .then(d => { if (d?.token) token = d.token; })
       .catch(() => {});
@@ -285,7 +301,7 @@ window.nfcLogin = id => {
     if (new URLSearchParams(location.search).get('state')) return;
     let saved = null;
     try { saved = localStorage.getItem('uprightai_user_id'); } catch {}
-    startMain(saved || 'emp_001');
+    startMain(saved || userId);
 })();
 
 // ── 세션 로그 전송 (원본 동일) ────────────────────────────
@@ -302,7 +318,7 @@ async function sendSessionLog() {
             },
             keepalive: true,
             body: JSON.stringify({
-                user_id: 'test01', date: todayKST(),
+                user_id: userId, date: todayKST(),
                 session_index: sessionIdx, fhp_events: eventsToSend
             })
         });
@@ -324,8 +340,8 @@ window.addEventListener('visibilitychange', () => {
 
 window.addEventListener('beforeunload', sendSessionLog);
 
-// ── 자동 종료 (오후 7시 KST) — 원본 동일 ─────────────────
-const AUTO_END_HOUR = 19;
+// ── 자동 종료 (오후 6시 KST) — 원본 동일 ─────────────────
+const AUTO_END_HOUR = 18;
 
 async function checkAutoLogout() {
     if (!token) return;   // 원본과 동일: token 없으면 skip
@@ -341,21 +357,22 @@ async function finalize() {
     window.close();
 }
 
-async function executeShutdown() {
+window.addEventListener('beforeunload', () => {
     loopRunning = false;
 
+    // context 가드 추가
     if (video.srcObject) {
         video.srcObject.getTracks().forEach(t => t.stop());
         video.srcObject = null;
     }
 
-    if (totalFhpDuration > 5.0) {
-        // 스트레칭 화면으로 전환 → stretching.html 별도 창으로 열기
-        window.close();
-    } else {
-        finalize();
+    if (totalFhpDuration > 5.0) {  // 테스트 조건
+        port.postMessage({ type: 'NEED_STRETCHING' });
+
     }
-}
+
+    finalize();
+});
 
 
 // ── 카메라 + 추론 루프 (원본 동일) ───────────────────────
@@ -389,7 +406,7 @@ async function startCamera() {
         loopRunning = true;
 
         async function detectLoop() {
-            if (!loopRunning) return;
+            if (!loopRunning || !chrome.runtime?.id) return;
             try {
                 const poses = await detectPose(detector, video);
                 if (poses.length > 0) {
