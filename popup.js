@@ -8,7 +8,6 @@ import { sendNotification }                               from './ui/notificatio
 const FUNCTIONS_URL = 'https://uprightai-func-c5eyevhngmhtbadr.centralus-01.azurewebsites.net/api';
 const MIN_FHP_SEC   = 10;
 const KST_OFFSET    = 9 * 60 * 60 * 1000;
-const port = chrome.runtime.connect({ name: 'popup' });
 
 
 function safeRuntime(fn) {
@@ -367,8 +366,8 @@ window.addEventListener('beforeunload', () => {
     }
 
     if (totalFhpDuration > 5.0) {  // 테스트 조건
-        port.postMessage({ type: 'NEED_STRETCHING' });
-
+        chrome.runtime.sendMessage({ type: 'NEED_STRETCHING' }).catch(() => {});
+        window.close();
     }
 
     finalize();

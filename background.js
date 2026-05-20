@@ -51,7 +51,7 @@ async function openPopup() {
     const win = await chrome.windows.create({
         url: chrome.runtime.getURL('popup.html'),
         type: 'popup',
-        width: 440,
+        width: 415,
         height: 640,
         top: 80,
         left: 900
@@ -103,23 +103,14 @@ chrome.runtime.requestUpdateCheck((status) => {
 });
 
 // ── 문제 2: popup 닫힐 때 거북목 조건이면 stretching 창 열기 ──
-chrome.runtime.onConnect.addListener((port) => {
-    if (port.name === 'popup') {
-        let needStretching = false;
-
-        port.onMessage.addListener((msg) => {
-            if (msg.type === 'NEED_STRETCHING') needStretching = true;
-        });
-
-        port.onDisconnect.addListener(() => {
-            if (needStretching) {
-                chrome.windows.create({
-                    url: chrome.runtime.getURL('stretching.html'),
-                    type: 'popup',
-                    width: 400,
-                    height: 600
-                });
-            }
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (msg.type === 'NEED_STRETCHING') {
+        // 스트레칭 창 팝업으로 띄우기
+        chrome.windows.create({
+            url: chrome.runtime.getURL('stretching.html'),
+            type: 'popup',
+            width: 415,
+            height: 660
         });
     }
 });
