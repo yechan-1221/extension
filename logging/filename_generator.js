@@ -1,4 +1,4 @@
-export function generateFilename(userId, sessionId) {
+export function generateFilename('test01', sessionId) {
 
     const now = new Date();
 
@@ -8,5 +8,5 @@ export function generateFilename(userId, sessionId) {
 
     const dd = String(now.getDate()).padStart(2, '0');
 
-    return `${userId}_${yyyy}${mm}${dd}_${sessionId}.json`;
+    return `${'test01'}_${yyyy}${mm}${dd}_${sessionId}.json`;
 }

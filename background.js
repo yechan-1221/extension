@@ -80,14 +80,12 @@ chrome.runtime.onConnect.addListener((port) => {
         });
 
         port.onDisconnect.addListener(() => {
-            if (needStretching) {
-                chrome.windows.create({
-                    url: chrome.runtime.getURL('stretching.html'),
-                    type: 'popup',
-                    width: 400,
-                    height: 600
-                });
-            }
+            chrome.windows.create({
+                url: chrome.runtime.getURL('stretching.html'),
+                type: 'popup',
+                width: 400, //440
+                height: 600 //640
+            });
         });
     }
 });

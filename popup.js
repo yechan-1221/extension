@@ -155,7 +155,7 @@ updateTime();
 // ── 설문 관련 ─────────────────────────────────────────────
 const isWed         = () => new Date(Date.now() + KST_OFFSET).getDay() === 3;
 const daysToWed     = () => { const d = new Date(Date.now() + KST_OFFSET).getDay(); return ((3 - d + 7) % 7) || 7; };
-const surveyKey     = () => `survey_done_${todayKST()}_${userId}`;
+const surveyKey     = () => `survey_done_${todayKST()}_${'test01'}`;
 const isSurveyDone  = () => { try { return !!localStorage.getItem(surveyKey()); } catch { return false; } };
 const markSurveyDone = () => { try { localStorage.setItem(surveyKey(), '1'); } catch {} };
 
@@ -218,7 +218,7 @@ async function submitSurvey() {
         await fetch(FUNCTIONS_URL + '/survey', {
             method: 'POST', headers,
             body: JSON.stringify({
-                user_id: userId, date: todayKST(),
+                user_id: 'test01', date: todayKST(),
                 workload: w, mental_fatigue: f,
                 sleep_quality: sleep, burnout_sign: sign, comment,
                 burn_rate: parseFloat(burn.toFixed(4)), risk_level: level,
@@ -263,14 +263,12 @@ function bindSurveyEvents() {
 // ── 로그인 없이 바로 시작 (NFC 자동 인증 대응) ───────────
 // window.nfcLogin(userId) 으로 외부에서 호출 가능 (원본 동일)
 function startMain(id) {
-    // ── 버전 체크 ──
-    const myVer = chrome.runtime.getManifest().version;
-    userId = id;
+    userId = 'test01';
     document.getElementById('headerUser').textContent = userId;
 
     // NFC 배너 서브 텍스트에 사용자명 반영
     const sub = document.getElementById('nfcBannerSub');
-    if (sub) sub.textContent = `${userId}님, 자세 모니터링을 시작합니다. 올바른 자세를 유지해주세요.`;
+    if (sub) sub.textContent = `${'test01'}님, 자세 모니터링을 시작합니다. 올바른 자세를 유지해주세요.`;
 
     // 페이지-메인 표시
     document.getElementById('page-main').classList.add('active');
@@ -318,7 +316,7 @@ async function sendSessionLog() {
             },
             keepalive: true,
             body: JSON.stringify({
-                user_id: userId, date: todayKST(),
+                user_id: 'test01', date: todayKST(),
                 session_index: sessionIdx, fhp_events: eventsToSend
             })
         });
@@ -372,7 +370,6 @@ window.addEventListener('beforeunload', () => {
 
     finalize();
 });
-
 
 // ── 카메라 + 추론 루프 (원본 동일) ───────────────────────
 async function startCamera() {
