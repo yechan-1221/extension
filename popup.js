@@ -374,7 +374,6 @@ window.addEventListener('beforeunload', () => {
     finalize();
 });
 
-
 // ── 카메라 + 추론 루프 (원본 동일) ───────────────────────
 async function startCamera() {
     document.getElementById('statusText').textContent = '카메라 로딩 중...';
