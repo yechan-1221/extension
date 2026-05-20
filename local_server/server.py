@@ -3,13 +3,22 @@ import os
 import subprocess
 import webbrowser
 import platform
+import sys # sys 모듈 추가
 from flask import Flask, jsonify
 from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)
 
-STATUS_FILE = os.path.join(os.path.dirname(__file__), 'session_state.json')
+# PyInstaller 환경에서 올바른 경로를 찾기 위한 처리
+if getattr(sys, 'frozen', False):
+    # .exe 파일로 실행될 때의 경로
+    application_path = os.path.dirname(sys.executable)
+else:
+    # 파이썬 스크립트로 실행될 때의 경로
+    application_path = os.path.dirname(__file__)
+
+STATUS_FILE = os.path.join(application_path, 'session_state.json')
 
 def read_state():
     if not os.path.exists(STATUS_FILE):
