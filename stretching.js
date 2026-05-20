@@ -71,14 +71,6 @@ window.onChinTuckUpdate = function({ phase, successCount, holdProgress, holdSec,
     successNum.textContent = successCount ?? '0';
     feedbackMain.textContent = message   ?? '';
     feedbackSub.textContent  = detail    ?? '';
-
-    if (holdProgress != null) {
-        holdBar.classList.add('show');
-        holdFill.style.width   = (holdProgress * 100).toFixed(1) + '%';
-        holdLabel.textContent  = `${holdSec?.toFixed(1) ?? '0.0'} / ${holdTarget ?? 5}초`;
-    } else {
-        holdBar.classList.remove('show');
-    }
 };
 
 // ── evaluateChinTuck 결과 → 아래 패널 업데이트 ─────────────
