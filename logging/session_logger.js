@@ -1,9 +1,9 @@
 const SESSION_KEY = 'current_session_log';
 
 // 세션 시작
-export async function createSessionLog(userId) {
+export async function createSessionLog('test01') {
     const log = {
-        user_id: userId,
+        user_id: 'test01',
         started_at: new Date().toISOString(),
         events: []
     };
