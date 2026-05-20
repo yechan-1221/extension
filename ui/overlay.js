@@ -162,25 +162,48 @@ export function drawChinTuckOverlay(canvas, ear, shoulder, result) {
     }
 
     ctx.font = 'bold 15px Arial';
+    const baselineY = 62;
+
     if (result.baseline && typeof result.baseline.cva === 'number') {
         ctx.fillStyle = 'lime';
-        ctx.fillText(`기준: 완료 (${result.baseline.cva.toFixed(1)}°)`, 20, result.detailMessage ? 140 : 90); //115
+        ctx.fillText(`기준: 완료 (${result.baseline.cva.toFixed(1)}°)`, 20, baselineY);
     } else if (result.status === 'COUNTDOWN') {
         ctx.fillStyle = 'yellow';
-        ctx.fillText('기준: 카운트다운 중', 20, result.detailMessage ? 140 : 90); // 115
+        ctx.fillText('기준: 카운트다운 중', 20, baselineY);
     } else if (result.status === 'BASELINE') {
         ctx.fillStyle = 'yellow';
-        ctx.fillText(`기준: 측정 중 ${Math.round((result.progress || 0) * 100)}%`, 20, result.detailMessage ? 140 : 90); //115
+        ctx.fillText(`기준: 측정 중 ${Math.round((result.progress || 0) * 100)}%`, 20, baselineY);
     } else if (result.status === 'BASELINE_SIDE_WAIT') {
         ctx.fillStyle = 'orange';
-        ctx.fillText(`기준: 측정 대기 ${Math.round((result.progress || 0) * 100)}%`, 20, result.detailMessage ? 140 : 90); //115
+        ctx.fillText(`기준: 측정 대기 ${Math.round((result.progress || 0) * 100)}%`, 20, baselineY);
     } else if (result.status === 'BASELINE_UNSTABLE') {
         ctx.fillStyle = 'red';
-        ctx.fillText('기준: 실패', 20, result.detailMessage ? 140 : 90); //115
+        ctx.fillText('기준: 실패', 20, baselineY);
     } else {
         ctx.fillStyle = '#FFFFFF';
-        ctx.fillText('기준: 미측정', 20, result.detailMessage ? 140 : 90); //115
-    }
+        ctx.fillText('기준: 미측정', 20, baselineY);
+}
+
+    // ctx.font = 'bold 15px Arial';
+    // if (result.baseline && typeof result.baseline.cva === 'number') {
+    //     ctx.fillStyle = 'lime';
+    //     ctx.fillText(`기준: 완료 (${result.baseline.cva.toFixed(1)}°)`, 20, result.detailMessage ? 140 : 90); //115
+    // } else if (result.status === 'COUNTDOWN') {
+    //     ctx.fillStyle = 'yellow';
+    //     ctx.fillText('기준: 카운트다운 중', 20, result.detailMessage ? 140 : 90); // 115
+    // } else if (result.status === 'BASELINE') {
+    //     ctx.fillStyle = 'yellow';
+    //     ctx.fillText(`기준: 측정 중 ${Math.round((result.progress || 0) * 100)}%`, 20, result.detailMessage ? 140 : 90); //115
+    // } else if (result.status === 'BASELINE_SIDE_WAIT') {
+    //     ctx.fillStyle = 'orange';
+    //     ctx.fillText(`기준: 측정 대기 ${Math.round((result.progress || 0) * 100)}%`, 20, result.detailMessage ? 140 : 90); //115
+    // } else if (result.status === 'BASELINE_UNSTABLE') {
+    //     ctx.fillStyle = 'red';
+    //     ctx.fillText('기준: 실패', 20, result.detailMessage ? 140 : 90); //115
+    // } else {
+    //     ctx.fillStyle = '#FFFFFF';
+    //     ctx.fillText('기준: 미측정', 20, result.detailMessage ? 140 : 90); //115
+    // }
 
     //ctx.font = '15px Arial';
     //ctx.fillStyle = '#FFFFFF';
