@@ -72,8 +72,8 @@ chrome.runtime.onConnect.addListener((port) => {
             chrome.windows.create({
                 url: chrome.runtime.getURL('stretching.html'),
                 type: 'popup',
-                width: 400,
-                height: 600
+                width: 400, //440
+                height: 600 //640
             });
         });
     }

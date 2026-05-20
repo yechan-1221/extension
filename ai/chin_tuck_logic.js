@@ -4,7 +4,7 @@
 // 별도 학습 모델 없이, 사용자가 버튼을 누른 뒤 측정한 기준 자세 대비 CVA 증가/머리 전방 이동 감소를 확인합니다.
 
 const BASELINE_DELAY_MS = 3000;      // 버튼 클릭 후 기준 자세 측정 전 대기 시간
-const BASELINE_FRAMES = 18;          // 3초 뒤 실제 기준 자세 평균을 낼 프레임 수
+const BASELINE_FRAMES = 6;          // 3초 뒤 실제 기준 자세 평균을 낼 프레임 수
 const MIN_IMPROVEMENT_DEG = 4;       // CVA만으로 충분히 좋아졌다고 볼 최소 개선량
 const MIN_RETRACTION_PX = 10;        // 머리 위치만으로 충분히 뒤로 들어왔다고 볼 최소 감소량
 const MIN_COMBINED_IMPROVEMENT_DEG = 2.5; // CVA+머리 이동을 함께 볼 때의 최소 CVA 개선량
@@ -216,8 +216,8 @@ export function evaluateChinTuck({ ear, shoulder, cva, poseQuality = { isSideVie
         if (holdStartTime && notSideMs < SIDE_GRACE_MS) {
             return {
                 status: 'HOLD',
-                feedbackLabel: 'HOLD',
-                message: 'HOLD: 측면을 유지하면서 자세를 잡아주세요',
+                feedbackLabel: '유지 중',
+                message: '좋은 자세를 유지하세요',
                 detailMessage: '측면 판정이 잠깐 흔들렸지만 유지 시간은 이어집니다',
                 progress: Math.min(1, (now - holdStartTime) / HOLD_DURATION_MS),
                 baseline,
@@ -272,7 +272,9 @@ export function evaluateChinTuck({ ear, shoulder, cva, poseQuality = { isSideVie
 
         return {
             status: 'RETURN',
-            message: '다음 횟수를 위해 기본 자세로 돌아오세요',
+            feedbackLabel: '돌아오기',
+            message: '다시 편한 자세로 돌아오세요',
+            detailMessage: '다음 동작을 위해 턱을 당긴 자세를 풀어주세요',
             progress: 0,
             baseline,
             cva,
@@ -316,9 +318,9 @@ export function evaluateChinTuck({ ear, shoulder, cva, poseQuality = { isSideVie
             lastStatus = 'SUCCESS';
             return {
                 status: 'SUCCESS',
-                feedbackLabel: 'SUCCESS',
+                feedbackLabel: '성공',
                 message: `좋습니다! ${successCount}회 성공`,
-                detailMessage: '다음 횟수를 위해 기본 자세로 돌아오세요',
+                detailMessage: '다음 동작을 위해 기본 자세로 돌아오세요',
                 progress: 1,
                 baseline,
                 cva,
@@ -330,13 +332,13 @@ export function evaluateChinTuck({ ear, shoulder, cva, poseQuality = { isSideVie
             };
         }
 
-        const status = holdMs < GOOD_DISPLAY_MS ? 'GOOD' : 'HOLD';
+        const status = 'HOLD';
         lastStatus = status;
         return {
             status,
-            feedbackLabel: status,
-            message: status === 'GOOD' ? 'GOOD: 좋은 자세입니다' : `HOLD: ${(holdMs / 1000).toFixed(1)} / 5초 유지 중`,
-            detailMessage: isGoodTuck ? '그 자세를 유지하세요' : '조금 흔들렸습니다. 같은 자세를 다시 잡아주세요',
+            feedbackLabel : '유지 중',
+            message: `${(holdMs / 1000).toFixed(1)} / 5초 유지 중입니다`,
+            detailMessage: isGoodTuck ? '좋은 자세입니다 그대로 유지하세요' : '조금 흔들렸습니다. 같은 자세를 다시 잡아주세요',
             progress: Math.min(1, holdMs / HOLD_DURATION_MS),
             baseline,
             cva,
@@ -355,40 +357,21 @@ export function evaluateChinTuck({ ear, shoulder, cva, poseQuality = { isSideVie
     const almostByRetraction = retractionPx >= ALMOST_RETRACTION_PX;
     const isAlmost = almostByCva || almostByRetraction;
 
+    let wrongDetailMessage = returnedToBase
+        ? '기준 자세입니다. 턱을 뒤로 당겨보세요'
+        : '기준보다 좋아지지 않았습니다. 얼굴을 돌리지 말고 측면 상태를 유지하세요';
+
+
     if (isAlmost) {
-        lastStatus = 'ALMOST';
-        let detailMessage = '조금만 더 턱을 뒤로 당기고 목을 길게 세워보세요';
-
-        if (cvaImprovement < MIN_COMBINED_IMPROVEMENT_DEG && retractionPx >= ALMOST_RETRACTION_PX) {
-            detailMessage = '머리는 들어왔지만 CVA 개선이 부족합니다. 목을 길게 세워보세요';
-        } else if (cvaImprovement >= ALMOST_IMPROVEMENT_DEG && retractionPx < MIN_COMBINED_RETRACTION_PX) {
-            detailMessage = 'CVA는 좋아졌지만 머리를 어깨 쪽으로 조금 더 뒤로 당겨보세요';
-        }
-
-        return {
-            status: 'ALMOST',
-            feedbackLabel: 'ALMOST',
-            message: 'ALMOST: 거의 맞았습니다',
-            detailMessage,
-            progress: 0,
-            baseline,
-            cva,
-            headForwardPx,
-            cvaImprovement,
-            retractionPx,
-            successCount,
-            holdSeconds: 0
-        };
+        wrongDetailMessage = '조금만 더 턱을 뒤로 당겨주세요';
     }
 
     lastStatus = 'WRONG';
     return {
         status: 'WRONG',
-        feedbackLabel: 'WRONG',
-        message: 'WRONG: 아직 스트레칭 자세가 아닙니다',
-        detailMessage: returnedToBase
-            ? '기준 자세입니다. 턱을 뒤로 당겨보세요'
-            : '기준보다 좋아지지 않았습니다. 얼굴을 돌리지 말고 측면 상태를 유지하세요',
+        feedbackLabel: '턱 당기기',
+        message: '턱을 뒤로 당겨주세요',
+        detailMessage: wrongDetailMessage,
         progress: 0,
         baseline,
         cva,
@@ -398,4 +381,4 @@ export function evaluateChinTuck({ ear, shoulder, cva, poseQuality = { isSideVie
         successCount,
         holdSeconds: 0
     };
-}
+    }
